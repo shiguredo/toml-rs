@@ -1,6 +1,6 @@
-//! TOML v1.0.0 ライブラリ。
+//! TOML v1.0.0 / v1.1.0 ライブラリ。
 //!
-//! 外部依存なしで TOML v1.0.0 仕様に完全準拠するパーサとシリアライザを提供する。
+//! 外部依存なしで TOML v1.0.0 および v1.1.0 仕様に完全準拠するパーサとシリアライザを提供する。
 
 mod datetime;
 mod edit;
@@ -18,11 +18,25 @@ pub use span::{
 };
 pub use value::{Array, Table, Value};
 
+/// TOML バージョン。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TomlVersion {
+    /// TOML v1.0.0
+    V1_0,
+    /// TOML v1.1.0
+    V1_1,
+}
+
 /// TOML 文字列を解析して Table に変換する。
 ///
-/// TOML ドキュメントのルートは常にテーブルである。
+/// TOML ドキュメントのルートは常にテーブルである。デフォルトは TOML v1.0.0。
 pub fn from_str(s: &str) -> Result<Table, Error> {
-    parser::parse(s)
+    parser::parse(s, TomlVersion::V1_0)
+}
+
+/// TOML 文字列を指定バージョンで解析して Table に変換する。
+pub fn from_str_with_version(s: &str, version: TomlVersion) -> Result<Table, Error> {
+    parser::parse(s, version)
 }
 
 /// Value を TOML 文字列に変換する。

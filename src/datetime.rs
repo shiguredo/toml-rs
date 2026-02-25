@@ -210,9 +210,17 @@ impl FromStr for Datetime {
     }
 }
 
-/// 日時文字列を解析する。内部ヘルパー。
+/// 日時文字列を解析する。内部ヘルパー。TOML v1.0.0 として解析する。
 pub(crate) fn parse_datetime_str(s: &str) -> Result<Datetime, String> {
-    // 時刻のみ (HH:MM:SS...)
+    parse_datetime_str_with_version(s, crate::TomlVersion::V1_0)
+}
+
+/// 日時文字列を指定バージョンで解析する。内部ヘルパー。
+pub(crate) fn parse_datetime_str_with_version(
+    s: &str,
+    version: crate::TomlVersion,
+) -> Result<Datetime, String> {
+    // 時刻のみ (HH:MM[:SS]...)
     if s.len() >= 2
         && s.as_bytes()[0].is_ascii_digit()
         && s.as_bytes()[1].is_ascii_digit()
@@ -222,7 +230,7 @@ pub(crate) fn parse_datetime_str(s: &str) -> Result<Datetime, String> {
         if s.len() >= 5 && s.as_bytes()[4] == b'-' {
             // 日付の可能性がある
         } else {
-            let (time, rest) = parse_time_part(s)?;
+            let (time, rest) = parse_time_part_with_version(s, version)?;
             if !rest.is_empty() {
                 return Err(format!("時刻の後に余分な文字: '{rest}'"));
             }
@@ -259,7 +267,7 @@ pub(crate) fn parse_datetime_str(s: &str) -> Result<Datetime, String> {
         None => unreachable!(),
     };
 
-    let (time, rest) = parse_time_part(rest)?;
+    let (time, rest) = parse_time_part_with_version(rest, version)?;
 
     // オフセット
     let (offset, rest) = if rest.is_empty() {
@@ -303,12 +311,21 @@ fn parse_date_part(s: &str) -> Result<(Date, &str), String> {
     Ok((date, rest))
 }
 
-fn parse_time_part(s: &str) -> Result<(Time, &str), String> {
+fn parse_time_part_with_version(
+    s: &str,
+    version: crate::TomlVersion,
+) -> Result<(Time, &str), String> {
     let (hour, rest) = parse_n_digits(s, 2)?;
     let rest = expect_byte(rest, b':')?;
     let (minute, rest) = parse_n_digits(rest, 2)?;
-    let rest = expect_byte(rest, b':')?;
-    let (second, rest) = parse_n_digits(rest, 2)?;
+
+    // V1_1: 秒は省略可能。次が ':' でなければ秒を 0 補完する。
+    let (second, rest) = if version == crate::TomlVersion::V1_1 && !rest.starts_with(':') {
+        (0u32, rest)
+    } else {
+        let rest = expect_byte(rest, b':')?;
+        parse_n_digits(rest, 2)?
+    };
 
     let (nanosecond, rest) = if rest.as_bytes().first() == Some(&b'.') {
         let rest = &rest[1..];

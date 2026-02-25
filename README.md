@@ -17,11 +17,11 @@ Please read <https://github.com/shiguredo/oss> before use.
 
 ## 概要
 
-Rust で実装された依存 0 の TOML v1.0.0 ライブラリです。
+Rust で実装された依存 0 の TOML ライブラリです。TOML v1.0.0 と v1.1.0 の両方に対応しています。
 
 ## 特徴
 
-- TOML v1.0.0 仕様に完全準拠
+- TOML v1.0.0 / v1.1.0 仕様に完全準拠
 - TOML 公式テストスイート [toml-test](https://github.com/toml-lang/toml-test) 全件パス
 - 依存ライブラリ 0
 - パーサとシリアライザを提供
@@ -58,6 +58,20 @@ assert_eq!(server["port"].as_integer().unwrap(), 8080);
 
 let servers = table["servers"].as_array().unwrap();
 assert_eq!(servers.len(), 2);
+```
+
+### TOML v1.1.0 としてパース
+
+```rust
+use shiguredo_toml::{from_str_with_version, TomlVersion};
+
+let table = from_str_with_version(r#"
+# v1.1.0: インラインテーブルの複数行と末尾カンマ
+contact = {
+    name = "Alice",
+    email = "alice@example.com",
+}
+"#, TomlVersion::V1_1).unwrap();
 ```
 
 ### シリアライズ
@@ -159,6 +173,8 @@ for comment in doc.comments().iter() {
 
 - TOML v1.0.0
   - <https://toml.io/en/v1.0.0>
+- TOML v1.1.0
+  - <https://toml.io/en/v1.1.0>
 
 ## 準拠テスト (toml-test)
 
@@ -167,6 +183,9 @@ TOML 公式テストスイート `toml-test` を 1 コマンドで実行でき�
 ```bash
 # valid / invalid / encoder を一括実行
 make toml-test
+
+# TOML v1.1.0 で実行
+make toml-test-v1_1
 
 # 日時系だけを素早く実行
 make toml-test-time

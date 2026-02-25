@@ -1,3 +1,4 @@
+use crate::TomlVersion;
 use crate::error::Error;
 use crate::parser;
 use crate::span::{CommentIndex, PathSegment, SpanIndex, TextSpan, parse_value_path};
@@ -15,7 +16,7 @@ pub struct Document {
 impl Document {
     /// TOML 文字列から編集可能ドキュメントを作成する。
     pub fn parse(input: &str) -> Result<Self, Error> {
-        let (table, spans, comments) = parser::parse_with_spans(input)?;
+        let (table, spans, comments) = parser::parse_with_spans(input, TomlVersion::V1_0)?;
         Ok(Self {
             source: input.to_owned(),
             table,
@@ -88,7 +89,8 @@ impl Document {
         let mut next_source = self.source.clone();
         next_source.replace_range(span.start..span.end, &replacement);
 
-        let (next_table, next_spans, next_comments) = parser::parse_with_spans(&next_source)?;
+        let (next_table, next_spans, next_comments) =
+            parser::parse_with_spans(&next_source, TomlVersion::V1_0)?;
         self.source = next_source;
         self.table = next_table;
         self.spans = next_spans;
