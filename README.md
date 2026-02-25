@@ -2,6 +2,7 @@
 
 [![shiguredo_toml](https://img.shields.io/crates/v/shiguredo_toml.svg)](https://crates.io/crates/shiguredo_toml)
 [![Documentation](https://docs.rs/shiguredo_toml/badge.svg)](https://docs.rs/shiguredo_toml)
+[![GitHub Actions](https://github.com/shiguredo/toml-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/shiguredo/toml-rs/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 ## About Shiguredo's open source software
