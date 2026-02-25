@@ -1,0 +1,33 @@
+---
+source: tests/snapshot_parser.rs
+expression: table
+---
+{
+    "products": Array(
+        [
+            Table(
+                {
+                    "name": String(
+                        "Hammer",
+                    ),
+                    "sku": Integer(
+                        738594937,
+                    ),
+                },
+            ),
+            Table(
+                {
+                    "color": String(
+                        "gray",
+                    ),
+                    "name": String(
+                        "Nail",
+                    ),
+                    "sku": Integer(
+                        284758393,
+                    ),
+                },
+            ),
+        ],
+    ),
+}

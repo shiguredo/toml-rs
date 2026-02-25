@@ -1,0 +1,17 @@
+[package]
+name = "toml_test_adapter"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+serde_json = "1"
+shiguredo_toml = { path = "../.." }
+
+[[bin]]
+name = "toml-test-decoder"
+path = "src/bin/toml_test_decoder.rs"
+
+[[bin]]
+name = "toml-test-encoder"
+path = "src/bin/toml_test_encoder.rs"

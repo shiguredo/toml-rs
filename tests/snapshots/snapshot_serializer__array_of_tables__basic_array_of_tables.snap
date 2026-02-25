@@ -1,0 +1,8 @@
+---
+source: tests/snapshot_serializer.rs
+expression: s
+---
+[[items]]
+name = "alpha"
+[[items]]
+name = "beta"

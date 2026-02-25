@@ -1,0 +1,113 @@
+---
+source: tests/snapshot_parser.rs
+expression: table
+---
+{
+    "ld": Datetime(
+        Datetime {
+            date: Some(
+                Date {
+                    year: 1979,
+                    month: 5,
+                    day: 27,
+                },
+            ),
+            time: None,
+            offset: None,
+        },
+    ),
+    "ldt": Datetime(
+        Datetime {
+            date: Some(
+                Date {
+                    year: 1979,
+                    month: 5,
+                    day: 27,
+                },
+            ),
+            time: Some(
+                Time {
+                    hour: 7,
+                    minute: 32,
+                    second: 0,
+                    nanosecond: 0,
+                },
+            ),
+            offset: None,
+        },
+    ),
+    "lt": Datetime(
+        Datetime {
+            date: None,
+            time: Some(
+                Time {
+                    hour: 7,
+                    minute: 32,
+                    second: 0,
+                    nanosecond: 0,
+                },
+            ),
+            offset: None,
+        },
+    ),
+    "lt_frac": Datetime(
+        Datetime {
+            date: None,
+            time: Some(
+                Time {
+                    hour: 7,
+                    minute: 32,
+                    second: 0,
+                    nanosecond: 123456789,
+                },
+            ),
+            offset: None,
+        },
+    ),
+    "odt": Datetime(
+        Datetime {
+            date: Some(
+                Date {
+                    year: 1979,
+                    month: 5,
+                    day: 27,
+                },
+            ),
+            time: Some(
+                Time {
+                    hour: 7,
+                    minute: 32,
+                    second: 0,
+                    nanosecond: 0,
+                },
+            ),
+            offset: Some(
+                Z,
+            ),
+        },
+    ),
+    "odt_offset": Datetime(
+        Datetime {
+            date: Some(
+                Date {
+                    year: 1979,
+                    month: 5,
+                    day: 27,
+                },
+            ),
+            time: Some(
+                Time {
+                    hour: 7,
+                    minute: 32,
+                    second: 0,
+                    nanosecond: 0,
+                },
+            ),
+            offset: Some(
+                Custom {
+                    minutes: 540,
+                },
+            ),
+        },
+    ),
+}

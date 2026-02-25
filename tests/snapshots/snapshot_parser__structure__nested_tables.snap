@@ -1,0 +1,33 @@
+---
+source: tests/snapshot_parser.rs
+expression: table
+---
+{
+    "database": Table(
+        {
+            "name": String(
+                "mydb",
+            ),
+        },
+    ),
+    "server": Table(
+        {
+            "host": String(
+                "localhost",
+            ),
+            "port": Integer(
+                8080,
+            ),
+            "tls": Table(
+                {
+                    "cert": String(
+                        "/path/to/cert.pem",
+                    ),
+                    "enabled": Boolean(
+                        true,
+                    ),
+                },
+            ),
+        },
+    ),
+}

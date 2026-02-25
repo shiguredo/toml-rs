@@ -1,0 +1,15 @@
+---
+source: tests/snapshot_parser.rs
+expression: table
+---
+{
+    "nan_val": Float(
+        NaN,
+    ),
+    "neg_inf": Float(
+        -inf,
+    ),
+    "pos_inf": Float(
+        inf,
+    ),
+}

@@ -1,0 +1,8 @@
+---
+source: tests/snapshot_serializer.rs
+expression: s
+---
+empty = []
+ints = [1, 2, 3]
+mixed = [1, "two", true]
+nested = [[1, 2], [3, 4]]

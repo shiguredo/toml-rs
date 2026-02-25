@@ -1,0 +1,7 @@
+---
+source: tests/snapshot_serializer.rs
+expression: s
+---
+a = 1.0
+b = 0.0
+c = -0.0

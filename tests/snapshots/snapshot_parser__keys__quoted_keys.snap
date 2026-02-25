@@ -1,0 +1,18 @@
+---
+source: tests/snapshot_parser.rs
+expression: table
+---
+{
+    "": String(
+        "empty",
+    ),
+    "hello world": Integer(
+        1,
+    ),
+    "literal key": Integer(
+        2,
+    ),
+    "ʎǝʞ": String(
+        "unicode",
+    ),
+}

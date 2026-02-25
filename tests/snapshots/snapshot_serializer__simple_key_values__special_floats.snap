@@ -1,0 +1,7 @@
+---
+source: tests/snapshot_serializer.rs
+expression: s
+---
+inf_val = inf
+nan_val = nan
+neg_inf_val = -inf

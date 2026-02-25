@@ -1,0 +1,75 @@
+---
+source: tests/snapshot_parser.rs
+expression: table
+---
+{
+    "empty": Array(
+        [],
+    ),
+    "integers": Array(
+        [
+            Integer(
+                1,
+            ),
+            Integer(
+                2,
+            ),
+            Integer(
+                3,
+            ),
+        ],
+    ),
+    "mixed": Array(
+        [
+            Integer(
+                1,
+            ),
+            String(
+                "two",
+            ),
+            Float(
+                3.0,
+            ),
+            Boolean(
+                true,
+            ),
+        ],
+    ),
+    "nested": Array(
+        [
+            Array(
+                [
+                    Integer(
+                        1,
+                    ),
+                    Integer(
+                        2,
+                    ),
+                ],
+            ),
+            Array(
+                [
+                    Integer(
+                        3,
+                    ),
+                    Integer(
+                        4,
+                    ),
+                ],
+            ),
+        ],
+    ),
+    "strings": Array(
+        [
+            String(
+                "a",
+            ),
+            String(
+                "b",
+            ),
+            String(
+                "c",
+            ),
+        ],
+    ),
+}

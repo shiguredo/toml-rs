@@ -1,0 +1,8 @@
+---
+source: tests/snapshot_serializer.rs
+expression: s
+---
+top = "value"
+
+[section]
+inner = 1

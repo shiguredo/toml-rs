@@ -1,0 +1,21 @@
+---
+source: tests/snapshot_parser.rs
+expression: table
+---
+{
+    "bool_false": Boolean(
+        false,
+    ),
+    "bool_true": Boolean(
+        true,
+    ),
+    "float": Float(
+        3.14,
+    ),
+    "int": Integer(
+        42,
+    ),
+    "str": String(
+        "hello",
+    ),
+}

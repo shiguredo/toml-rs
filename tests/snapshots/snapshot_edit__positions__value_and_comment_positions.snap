@@ -1,0 +1,20 @@
+---
+source: tests/snapshot_edit.rs
+expression: snapshot
+---
+[value spans]
+arr@39..61="[1, { nested = true }]"
+arr[0]@40..41="1"
+arr[1].nested@54..58="true"
+arr[1]@43..60="{ nested = true }"
+port@21..25="8080"
+servers[0].name@88..95="\"alpha\""
+servers[1].name@123..129="\"beta\""
+title@8..13="\"あ\""
+
+[comment spans]
+port@26..32="# keep"
+arr@62..67="# arr"
+servers[0].name@96..103="# first"
+servers[1].name@130..138="# second"
+-@139..147="# orphan"

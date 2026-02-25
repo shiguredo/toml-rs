@@ -1,0 +1,8 @@
+---
+source: tests/snapshot_serializer.rs
+expression: s
+---
+[database]
+name = "mydb"
+[server]
+port = 8080

@@ -1,0 +1,53 @@
+---
+source: tests/snapshot_parser.rs
+expression: table
+---
+{
+    "fruits": Array(
+        [
+            Table(
+                {
+                    "name": String(
+                        "apple",
+                    ),
+                    "varieties": Array(
+                        [
+                            Table(
+                                {
+                                    "name": String(
+                                        "red delicious",
+                                    ),
+                                },
+                            ),
+                            Table(
+                                {
+                                    "name": String(
+                                        "granny smith",
+                                    ),
+                                },
+                            ),
+                        ],
+                    ),
+                },
+            ),
+            Table(
+                {
+                    "name": String(
+                        "banana",
+                    ),
+                    "varieties": Array(
+                        [
+                            Table(
+                                {
+                                    "name": String(
+                                        "plantain",
+                                    ),
+                                },
+                            ),
+                        ],
+                    ),
+                },
+            ),
+        ],
+    ),
+}

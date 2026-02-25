@@ -1,0 +1,21 @@
+[package]
+name = "shiguredo_toml"
+version = "2026.0.0"
+edition = "2024"
+rust-version = "1.88"
+authors = ["Shiguredo Inc."]
+license = "Apache-2.0"
+description = "TOML Library"
+homepage = "https://github.com/shiguredo/toml-rs"
+repository = "https://github.com/shiguredo/toml-rs"
+readme = "README.md"
+include = ["/src/**", "/LICENSE", "/README.md"]
+
+[dependencies]
+
+[dev-dependencies]
+insta = "1"
+
+[workspace]
+members = ["pbt"]
+exclude = ["fuzz", "tools/toml-test-adapter"]

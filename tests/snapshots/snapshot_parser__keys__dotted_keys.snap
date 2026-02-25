@@ -1,0 +1,26 @@
+---
+source: tests/snapshot_parser.rs
+expression: table
+---
+{
+    "name": String(
+        "Orange",
+    ),
+    "physical": Table(
+        {
+            "color": String(
+                "orange",
+            ),
+            "shape": String(
+                "round",
+            ),
+        },
+    ),
+    "site": Table(
+        {
+            "google.com": Boolean(
+                true,
+            ),
+        },
+    ),
+}

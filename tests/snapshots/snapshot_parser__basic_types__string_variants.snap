@@ -1,0 +1,12 @@
+---
+source: tests/snapshot_parser.rs
+expression: table
+---
+{
+    "basic": String(
+        "hello\nworld",
+    ),
+    "literal": String(
+        "C:\\Users\\path",
+    ),
+}
