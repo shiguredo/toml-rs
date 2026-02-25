@@ -862,9 +862,9 @@ impl<'a> Parser<'a> {
                 Some(b'\r') if self.version == TomlVersion::V1_1 => {
                     self.advance_bytes(1);
                     if self.peek() != Some(b'\n') {
-                        return Err(self.error(
-                            "TOML v1.1.0 では複数行基本文字列内に単独の CR は不可",
-                        ));
+                        return Err(
+                            self.error("TOML v1.1.0 では複数行基本文字列内に単独の CR は不可")
+                        );
                     }
                     // \r\n の \r を消費。次のループで \n を処理する。
                 }
@@ -980,9 +980,9 @@ impl<'a> Parser<'a> {
                 Some(b'\r') if self.version == TomlVersion::V1_1 => {
                     self.advance_bytes(1);
                     if self.peek() != Some(b'\n') {
-                        return Err(self.error(
-                            "TOML v1.1.0 では複数行リテラル文字列内に単独の CR は不可",
-                        ));
+                        return Err(
+                            self.error("TOML v1.1.0 では複数行リテラル文字列内に単独の CR は不可")
+                        );
                     }
                     // \r\n の \r を消費。次のループで \n を処理する。
                 }
