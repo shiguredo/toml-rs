@@ -1,6 +1,9 @@
 use crate::error::Error;
 use crate::value::{Table, Value};
 
+/// シリアライザの最大再帰深度。パーサーと同じ値。
+const MAX_DEPTH: usize = 128;
+
 /// Value を TOML 文字列に変換する。
 pub(crate) fn to_string(value: &Value) -> Result<String, Error> {
     let mut ser = Serializer::new(false);
@@ -28,6 +31,8 @@ struct Serializer {
     output: String,
     /// 整形モード（テーブル間に空行を挿入する）
     pretty: bool,
+    /// 現在の再帰深度
+    depth: usize,
 }
 
 impl Serializer {
@@ -35,7 +40,24 @@ impl Serializer {
         Self {
             output: String::new(),
             pretty,
+            depth: 0,
         }
+    }
+
+    /// 再帰深度を 1 増やし、制限を超えていればエラーを返す。
+    fn enter_depth(&mut self) -> Result<(), Error> {
+        self.depth += 1;
+        if self.depth > MAX_DEPTH {
+            return Err(Error::serialize(format!(
+                "nesting depth exceeds maximum of {MAX_DEPTH}"
+            )));
+        }
+        Ok(())
+    }
+
+    /// 再帰深度を 1 減らす。
+    fn leave_depth(&mut self) {
+        self.depth -= 1;
     }
 
     /// トップレベルの値を直列化する。
@@ -53,6 +75,8 @@ impl Serializer {
     /// 2. サブテーブルを `[header]` セクションとして出力
     /// 3. 配列テーブルを `[[header]]` セクションとして出力
     fn serialize_table(&mut self, table: &Table, path: &[String]) -> Result<(), Error> {
+        self.enter_depth()?;
+
         // 1. 単純キー値ペア
         for (key, value) in table {
             if is_inline_value(value) {
@@ -106,6 +130,7 @@ impl Serializer {
             }
         }
 
+        self.leave_depth();
         Ok(())
     }
 
@@ -187,6 +212,7 @@ impl Serializer {
 
     /// インライン配列を出力する。
     fn write_inline_array(&mut self, array: &[Value]) -> Result<(), Error> {
+        self.enter_depth()?;
         self.output.push('[');
         for (i, value) in array.iter().enumerate() {
             if i > 0 {
@@ -195,11 +221,13 @@ impl Serializer {
             self.write_inline_value(value)?;
         }
         self.output.push(']');
+        self.leave_depth();
         Ok(())
     }
 
     /// インラインテーブルを出力する。
     fn write_inline_table(&mut self, table: &Table) -> Result<(), Error> {
+        self.enter_depth()?;
         self.output.push('{');
         for (i, (key, value)) in table.iter().enumerate() {
             if i > 0 {
@@ -210,6 +238,7 @@ impl Serializer {
             self.write_inline_value(value)?;
         }
         self.output.push('}');
+        self.leave_depth();
         Ok(())
     }
 }
@@ -231,15 +260,28 @@ fn is_array_of_tables(array: &[Value]) -> bool {
 }
 
 /// キーにクォートが必要かどうかを返す。
-fn needs_quoting(key: &str) -> bool {
+pub(crate) fn needs_quoting(key: &str) -> bool {
     key.is_empty()
         || !key
             .bytes()
             .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
 }
 
+/// TOML キーを適切にフォーマットする（必要に応じてクォートする）。
+pub(crate) fn format_key(key: &str) -> String {
+    if needs_quoting(key) {
+        let mut out = String::with_capacity(key.len() + 2);
+        out.push('"');
+        write_escaped_string(&mut out, key);
+        out.push('"');
+        out
+    } else {
+        key.to_owned()
+    }
+}
+
 /// エスケープ済み文字列を出力バッファに書き込む（クォートなし）。
-fn write_escaped_string(output: &mut String, s: &str) {
+pub(crate) fn write_escaped_string(output: &mut String, s: &str) {
     for ch in s.chars() {
         match ch {
             '\u{0008}' => output.push_str("\\b"),

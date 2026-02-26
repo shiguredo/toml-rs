@@ -398,12 +398,20 @@ fn parse_time_part_with_version(
 }
 
 fn parse_offset_part(s: &str) -> Result<(Offset, &str), Error> {
-    let sign = s.as_bytes()[0];
+    let sign = *s
+        .as_bytes()
+        .first()
+        .ok_or_else(|| Error::validate("expected '+' or '-' for offset but input is empty"))?;
     let rest = &s[1..];
     let (hours, rest) = parse_n_digits(rest, 2)?;
     let rest = expect_byte(rest, b':')?;
     let (minutes, rest) = parse_n_digits(rest, 2)?;
 
+    if hours > 23 {
+        return Err(Error::validate(format!(
+            "offset hours out of range: {hours}"
+        )));
+    }
     if minutes > 59 {
         return Err(Error::validate(format!(
             "offset minutes out of range: {minutes}"

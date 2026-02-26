@@ -409,15 +409,17 @@ impl<'a> Parser<'a> {
                 if !table.contains_key(part) {
                     table.insert(part.clone(), Value::Table(Table::new()));
                 }
-                match table.get(part) {
-                    Some(Value::Table(_)) => {}
-                    Some(other) => {
-                        return Err(Error::parse(
-                            header_pos,
-                            format!("key '{part}' is already defined as {}", other.type_name()),
-                        ));
-                    }
-                    None => unreachable!(),
+                // insert 済みまたは既存のため None にはならない
+                if let Some(existing) = table.get(part)
+                    && !existing.is_table()
+                {
+                    return Err(Error::parse(
+                        header_pos,
+                        format!(
+                            "key '{part}' is already defined as {}",
+                            existing.type_name()
+                        ),
+                    ));
                 }
             } else {
                 if let Some(TableState::Inline) = self.table_states.get(&prefix_path) {
@@ -430,22 +432,26 @@ impl<'a> Parser<'a> {
                     ));
                 }
 
-                if !table.contains_key(part) {
-                    table.insert(part.clone(), Value::Table(Table::new()));
-                    self.table_states
-                        .entry(prefix_path)
-                        .or_insert(TableState::Implicit);
-                }
-
-                match table.get_mut(part) {
-                    Some(Value::Table(t)) => table = t,
-                    Some(other) => {
-                        return Err(Error::parse(
-                            header_pos,
-                            format!("key '{part}' is already defined as {}", other.type_name()),
-                        ));
+                use std::collections::btree_map::Entry;
+                match table.entry(part.clone()) {
+                    Entry::Occupied(entry) => match entry.into_mut() {
+                        Value::Table(t) => table = t,
+                        other => {
+                            return Err(Error::parse(
+                                header_pos,
+                                format!("key '{part}' is already defined as {}", other.type_name()),
+                            ));
+                        }
+                    },
+                    Entry::Vacant(entry) => {
+                        self.table_states
+                            .entry(prefix_path)
+                            .or_insert(TableState::Implicit);
+                        table = entry
+                            .insert(Value::Table(Table::new()))
+                            .as_table_mut()
+                            .expect("just inserted a Table");
                     }
-                    None => unreachable!(),
                 }
             }
         }
@@ -562,22 +568,26 @@ impl<'a> Parser<'a> {
                     ));
                 }
 
-                if !table.contains_key(part) {
-                    table.insert(part.clone(), Value::Table(Table::new()));
-                    self.table_states
-                        .entry(prefix_path)
-                        .or_insert(TableState::Implicit);
-                }
-
-                match table.get_mut(part) {
-                    Some(Value::Table(t)) => table = t,
-                    Some(other) => {
-                        return Err(Error::parse(
-                            header_pos,
-                            format!("key '{part}' is already defined as {}", other.type_name()),
-                        ));
+                use std::collections::btree_map::Entry;
+                match table.entry(part.clone()) {
+                    Entry::Occupied(entry) => match entry.into_mut() {
+                        Value::Table(t) => table = t,
+                        other => {
+                            return Err(Error::parse(
+                                header_pos,
+                                format!("key '{part}' is already defined as {}", other.type_name()),
+                            ));
+                        }
+                    },
+                    Entry::Vacant(entry) => {
+                        self.table_states
+                            .entry(prefix_path)
+                            .or_insert(TableState::Implicit);
+                        table = entry
+                            .insert(Value::Table(Table::new()))
+                            .as_table_mut()
+                            .expect("just inserted a Table");
                     }
-                    None => unreachable!(),
                 }
             }
         }
@@ -597,7 +607,10 @@ impl<'a> Parser<'a> {
             prefix.push(part.clone());
             path.push(PathSegment::Key(part.clone()));
             if self.array_table_paths.contains(&prefix) {
-                let index = *self.array_table_current_index.get(&prefix).unwrap_or(&0);
+                let index = *self
+                    .array_table_current_index
+                    .get(&prefix)
+                    .expect("array_table_paths and array_table_current_index must be in sync");
                 path.push(PathSegment::Index(index));
             }
         }
@@ -656,9 +669,10 @@ impl<'a> Parser<'a> {
 
         for (i, part) in key_parts[..key_parts.len() - 1].iter().enumerate() {
             let path = key_parts[..=i].to_vec();
-            if current.contains_key(part) {
-                match current.get_mut(part) {
-                    Some(Value::Table(t)) => {
+            use std::collections::btree_map::Entry;
+            match current.entry(part.clone()) {
+                Entry::Occupied(entry) => match entry.into_mut() {
+                    Value::Table(t) => {
                         if !dotted_created_paths.contains(&path) {
                             return Err(Error::parse(
                                 key_pos,
@@ -670,7 +684,7 @@ impl<'a> Parser<'a> {
                         }
                         current = t;
                     }
-                    Some(other) => {
+                    other => {
                         return Err(Error::parse(
                             key_pos,
                             format!(
@@ -679,12 +693,14 @@ impl<'a> Parser<'a> {
                             ),
                         ));
                     }
-                    None => unreachable!(),
+                },
+                Entry::Vacant(entry) => {
+                    dotted_created_paths.insert(path);
+                    current = entry
+                        .insert(Value::Table(Table::new()))
+                        .as_table_mut()
+                        .expect("just inserted a Table");
                 }
-            } else {
-                current.insert(part.clone(), Value::Table(Table::new()));
-                dotted_created_paths.insert(path);
-                current = current.get_mut(part).unwrap().as_table_mut().unwrap();
             }
         }
 
@@ -1519,12 +1535,6 @@ impl<'a> Parser<'a> {
                     self.advance_bytes(1);
                     return Ok(Value::Table(result));
                 }
-                Some(b'\n') | Some(b'\r') => {
-                    return Err(Error::parse(
-                        self.position(),
-                        "newline not allowed in inline table in TOML v1.0.0",
-                    ));
-                }
                 _ => {
                     return Err(self.error("expected ',' or '}' in inline table"));
                 }
@@ -1735,10 +1745,11 @@ fn insert_dotted_key(
             ));
         }
 
-        if current.contains_key(part) {
-            match current.get_mut(part) {
-                Some(Value::Table(t)) => current = t,
-                Some(other) => {
+        use std::collections::btree_map::Entry;
+        match current.entry(part.clone()) {
+            Entry::Occupied(entry) => match entry.into_mut() {
+                Value::Table(t) => current = t,
+                other => {
                     return Err(Error::parse(
                         key_pos,
                         format!(
@@ -1747,12 +1758,14 @@ fn insert_dotted_key(
                         ),
                     ));
                 }
-                None => unreachable!(),
+            },
+            Entry::Vacant(entry) => {
+                table_states.entry(full_path).or_insert(TableState::Dotted);
+                current = entry
+                    .insert(Value::Table(Table::new()))
+                    .as_table_mut()
+                    .expect("just inserted a Table");
             }
-        } else {
-            current.insert(part.clone(), Value::Table(Table::new()));
-            table_states.entry(full_path).or_insert(TableState::Dotted);
-            current = current.get_mut(part).unwrap().as_table_mut().unwrap();
         }
     }
 

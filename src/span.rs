@@ -32,7 +32,7 @@ pub struct SectionSpan {
 pub struct SectionIndex {
     sections: HashMap<ValuePath, SectionSpan>,
     /// ルートセクション（ヘッダなし部分）の終了バイト位置。
-    pub root_end: usize,
+    pub(crate) root_end: usize,
 }
 
 impl SectionIndex {
@@ -49,6 +49,11 @@ impl SectionIndex {
     /// パスに対応するセクション範囲を取得する。
     pub fn get(&self, path: &[PathSegment]) -> Option<SectionSpan> {
         self.sections.get(path).copied()
+    }
+
+    /// ルートセクション（ヘッダなし部分）の終了バイト位置を返す。
+    pub fn root_end(&self) -> usize {
+        self.root_end
     }
 
     /// すべてのエントリを列挙する。

@@ -1,6 +1,7 @@
 use crate::TomlVersion;
 use crate::error::Error;
 use crate::parser;
+use crate::serializer::format_key;
 use crate::span::{CommentIndex, PathSegment, SectionIndex, SpanIndex, TextSpan, parse_value_path};
 use crate::value::{Table, Value};
 
@@ -123,13 +124,10 @@ impl Document {
 
     /// パスが存在しない場合に新規キー値ペアを挿入する。
     fn insert_at_path(&mut self, path: &[PathSegment], new_value: Value) -> Result<(), Error> {
-        // 末尾セグメントが Index の場合はエラー（配列要素の追加は非対応）
+        // 末尾セグメントが Key であることを要求する
         let last = path.last().ok_or_else(|| Error::serialize("empty path"))?;
-        match last {
-            PathSegment::Key(_) => {}
-            PathSegment::Index(_) => {
-                return Err(Error::serialize("cannot insert an array element via set"));
-            }
+        let PathSegment::Key(key) = last else {
+            return Err(Error::serialize("cannot insert an array element via set"));
         };
 
         let parent_path = &path[..path.len() - 1];
@@ -150,10 +148,6 @@ impl Document {
         }
 
         // セクションテーブルまたはルートへの挿入
-        let key = match last {
-            PathSegment::Key(key) => key,
-            _ => unreachable!(),
-        };
         let inline_value = crate::to_inline_string(&new_value)?;
         let key_text = format_key(key);
         let insert_text = format!("{key_text} = {inline_value}\n");
@@ -300,11 +294,8 @@ impl Document {
         new_value: Value,
     ) -> Result<(), Error> {
         let last = path.last().ok_or_else(|| Error::serialize("empty path"))?;
-        let key = match last {
-            PathSegment::Key(key) => key,
-            PathSegment::Index(_) => {
-                return Err(Error::serialize("cannot insert an array element via set"));
-            }
+        let PathSegment::Key(key) = last else {
+            return Err(Error::serialize("cannot insert an array element via set"));
         };
 
         let parent_path = &path[..path.len() - 1];
@@ -333,11 +324,9 @@ impl Document {
 
         let insert_text = if parent_table.is_empty() {
             format!("{key_text} = {inline_value}")
-        } else if has_space_before_brace {
-            // "{ a = 1 }" -> "{ a = 1, b = 2 }"
-            // スペースの前に挿入するので、スペースは維持される
-            format!(", {key_text} = {inline_value}")
         } else {
+            // "{ a = 1 }" -> "{ a = 1, b = 2 }"
+            // has_space_before_brace の場合はスペースの前に挿入するため、スペースは維持される
             format!(", {key_text} = {inline_value}")
         };
 
@@ -360,43 +349,6 @@ impl std::str::FromStr for Document {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Self::parse(s)
-    }
-}
-
-/// TOML キーを適切にフォーマットする（必要に応じてクォートする）。
-fn format_key(key: &str) -> String {
-    if key.is_empty()
-        || !key
-            .bytes()
-            .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
-    {
-        // クォートが必要
-        let mut out = String::with_capacity(key.len() + 2);
-        out.push('"');
-        for ch in key.chars() {
-            match ch {
-                '\u{0008}' => out.push_str("\\b"),
-                '\t' => out.push_str("\\t"),
-                '\n' => out.push_str("\\n"),
-                '\u{000C}' => out.push_str("\\f"),
-                '\r' => out.push_str("\\r"),
-                '"' => out.push_str("\\\""),
-                '\\' => out.push_str("\\\\"),
-                c if c.is_control() => {
-                    let code = c as u32;
-                    if code <= 0xFFFF {
-                        out.push_str(&format!("\\u{code:04X}"));
-                    } else {
-                        out.push_str(&format!("\\U{code:08X}"));
-                    }
-                }
-                c => out.push(c),
-            }
-        }
-        out.push('"');
-        out
-    } else {
-        key.to_owned()
     }
 }
 

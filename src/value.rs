@@ -163,6 +163,12 @@ impl Value {
     }
 }
 
+/// テーブルからキーで値を取得する。
+///
+/// # Panics
+///
+/// - 値がテーブルでない場合
+/// - 指定キーがテーブルに存在しない場合
 impl Index<&str> for Value {
     type Output = Value;
 
@@ -172,6 +178,12 @@ impl Index<&str> for Value {
     }
 }
 
+/// 配列からインデックスで値を取得する。
+///
+/// # Panics
+///
+/// - 値が配列でない場合
+/// - インデックスが配列の範囲外の場合
 impl Index<usize> for Value {
     type Output = Value;
 

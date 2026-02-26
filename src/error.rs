@@ -2,7 +2,7 @@ use std::fmt;
 use std::num::NonZeroUsize;
 
 /// TOML の解析・直列化エラー。
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Error {
     /// 解析エラー（バイト位置付き）
     Parse {
