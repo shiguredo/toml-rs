@@ -1,4 +1,4 @@
-.PHONY: test cover pbt pbt-cover fuzz fuzzing fuzzing-parallel fuzzing-list check clippy fmt clean toml-test toml-test-v1_1 toml-test-time toml-test-ci
+.PHONY: test cover pbt pbt-cover fuzz fuzzing fuzzing-parallel fuzzing-list check clippy fmt clean toml-test toml-test-v1_1 toml-test-time toml-test-ci toml-test-v1_1-ci
 
 # 全テストを実行する
 test:
@@ -68,6 +68,10 @@ toml-test-time:
 # CI 向けに toml-test を実行する
 toml-test-ci:
 	TOML_TEST_UPDATE=1 ./scripts/run_toml_test.sh -parallel 4 -color never
+
+# CI 向けに toml-test (TOML v1.1) を実行する
+toml-test-v1_1-ci:
+	TOML_VERSION=1.1 TOML_TEST_UPDATE=1 ./scripts/run_toml_test.sh -parallel 4 -color never
 
 # ビルド成果物を削除する
 clean:
