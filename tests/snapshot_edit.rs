@@ -47,6 +47,16 @@ name = "beta"
 
         insta::assert_snapshot!(doc.as_str());
     }
+
+    #[test]
+    fn insert_into_section_with_trailing_whitespace_line() {
+        let input = "[env]\nFOO = \"BAR\"\n  \n[target.aarch64-unknown-linux-gnu]\n";
+        let mut doc = Document::parse(input).unwrap();
+        doc.set_path("env.PIYO", Value::String("FUGA".to_owned()))
+            .unwrap();
+
+        insta::assert_snapshot!(doc.as_str());
+    }
 }
 
 mod edit_output {

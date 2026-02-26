@@ -299,25 +299,24 @@ fn format_key(key: &str) -> String {
     }
 }
 
-/// セクション body_end から末尾の空行を逆方向にスキップし、
+/// セクション body_end から末尾の空行（空白のみの行を含む）を逆方向にスキップし、
 /// 最後の有効な行の直後の位置を返す。
 fn strip_trailing_blank_lines(source: &str, body_end: usize) -> usize {
     let bytes = source.as_bytes();
     let mut pos = body_end;
 
-    // 末尾の空行（改行のみの行）を逆方向にスキップする
-    while pos > 0 {
-        // 直前の改行を確認する
-        if bytes[pos - 1] != b'\n' {
-            break;
+    // 末尾の空行を逆方向にスキップする
+    while pos > 0 && bytes[pos - 1] == b'\n' {
+        // 改行の直前をスキャンして、行の内容が空白のみかどうかを判定する
+        let line_end = pos - 1;
+        let mut line_start = line_end;
+        while line_start > 0 && bytes[line_start - 1] != b'\n' {
+            line_start -= 1;
         }
-        // この改行が空行（直前が行頭または改行）かどうかを判定する
-        if pos >= 2 && bytes[pos - 2] == b'\n' {
-            // 空行を 1 つスキップする
-            pos -= 1;
-        } else if pos == 1 {
-            // ソース先頭の改行のみの行
-            pos -= 1;
+        // 行の内容が空白のみであれば空行とみなしてスキップする
+        let line_content = &bytes[line_start..line_end];
+        if line_content.iter().all(|&b| b == b' ' || b == b'\t') {
+            pos = line_start;
         } else {
             break;
         }
