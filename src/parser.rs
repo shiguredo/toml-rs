@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
+use crate::TomlVersion;
 use crate::datetime;
 use crate::error::Error;
 use crate::span::{CommentIndex, PathSegment, SpanIndex, TextSpan, ValuePath};
@@ -47,15 +48,20 @@ struct Parser<'a> {
     pending_comment_target: Option<ValuePath>,
     /// 現在のネスト深さ
     depth: usize,
+    /// パース対象の TOML バージョン
+    version: TomlVersion,
 }
 
 /// TOML 文字列を解析して Table に変換する。
-pub(crate) fn parse(input: &str) -> Result<Table, Error> {
-    parse_with_spans(input).map(|(table, _, _)| table)
+pub(crate) fn parse(input: &str, version: TomlVersion) -> Result<Table, Error> {
+    parse_with_spans(input, version).map(|(table, _, _)| table)
 }
 
 /// TOML 文字列を解析して Table と位置情報に変換する。
-pub(crate) fn parse_with_spans(input: &str) -> Result<(Table, SpanIndex, CommentIndex), Error> {
+pub(crate) fn parse_with_spans(
+    input: &str,
+    version: TomlVersion,
+) -> Result<(Table, SpanIndex, CommentIndex), Error> {
     let mut parser = Parser {
         input,
         rest: input,
@@ -69,6 +75,7 @@ pub(crate) fn parse_with_spans(input: &str) -> Result<(Table, SpanIndex, Comment
         comment_index: CommentIndex::new(),
         pending_comment_target: None,
         depth: 0,
+        version,
     };
     parser.parse_document()?;
     Ok((parser.root, parser.span_index, parser.comment_index))
@@ -851,6 +858,16 @@ impl<'a> Parser<'a> {
                         self.error(format!("複数行基本文字列内の不正な制御文字: U+{b:04X}"))
                     );
                 }
+                // V1_1: \r\n を \n に正規化する。\r 単体はエラー。
+                Some(b'\r') if self.version == TomlVersion::V1_1 => {
+                    self.advance_bytes(1);
+                    if self.peek() != Some(b'\n') {
+                        return Err(
+                            self.error("TOML v1.1.0 では複数行基本文字列内に単独の CR は不可")
+                        );
+                    }
+                    // \r\n の \r を消費。次のループで \n を処理する。
+                }
                 Some(_) => {
                     let ch = self.advance_char().unwrap();
                     result.push(ch);
@@ -959,6 +976,16 @@ impl<'a> Parser<'a> {
                         self.error(format!("複数行リテラル文字列内の不正な制御文字: U+{b:04X}"))
                     );
                 }
+                // V1_1: \r\n を \n に正規化する。\r 単体はエラー。
+                Some(b'\r') if self.version == TomlVersion::V1_1 => {
+                    self.advance_bytes(1);
+                    if self.peek() != Some(b'\n') {
+                        return Err(
+                            self.error("TOML v1.1.0 では複数行リテラル文字列内に単独の CR は不可")
+                        );
+                    }
+                    // \r\n の \r を消費。次のループで \n を処理する。
+                }
                 Some(_) => {
                     let ch = self.advance_char().unwrap();
                     result.push(ch);
@@ -1008,6 +1035,16 @@ impl<'a> Parser<'a> {
             Some(b'U') => {
                 self.advance_bytes(1);
                 self.parse_unicode_escape(8)
+            }
+            // V1_1 追加: \e (ESC, U+001B)
+            Some(b'e') if self.version == TomlVersion::V1_1 => {
+                self.advance_bytes(1);
+                Ok('\u{001B}')
+            }
+            // V1_1 追加: \xHH (2 桁 16 進数)
+            Some(b'x') if self.version == TomlVersion::V1_1 => {
+                self.advance_bytes(1);
+                self.parse_unicode_escape(2)
             }
             Some(b) => Err(self.error(format!("不正なエスケープシーケンス: '\\{}'", b as char))),
             None => Err(self.error("エスケープシーケンスが不完全")),
@@ -1318,7 +1355,7 @@ impl<'a> Parser<'a> {
         }
 
         let datetime_str = &start[..len];
-        let dt = datetime::parse_datetime_str(datetime_str)
+        let dt = datetime::parse_datetime_str_with_version(datetime_str, self.version)
             .map_err(|msg| Error::parse(start_pos, msg))?;
 
         self.advance_bytes(len);
@@ -1373,6 +1410,7 @@ impl<'a> Parser<'a> {
     /// インラインテーブル `{...}` を解析する。
     ///
     /// v1.0.0: 単一行のみ、末尾カンマ禁止。
+    /// v1.1.0: 複数行・末尾カンマ許可。
     fn parse_inline_table(&mut self) -> Result<Value, Error> {
         self.expect(b'{')?;
         let mut result = Table::new();
@@ -1414,12 +1452,16 @@ impl<'a> Parser<'a> {
                 Some(b',') => {
                     self.advance_bytes(1);
                     self.skip_inline_whitespace()?;
-                    // v1.0.0: 末尾カンマ禁止
                     if self.peek() == Some(b'}') {
-                        return Err(Error::parse(
-                            self.position(),
-                            "TOML v1.0.0 ではインラインテーブルの末尾カンマは不可",
-                        ));
+                        if self.version == TomlVersion::V1_0 {
+                            return Err(Error::parse(
+                                self.position(),
+                                "TOML v1.0.0 ではインラインテーブルの末尾カンマは不可",
+                            ));
+                        }
+                        // V1_1: 末尾カンマ許可
+                        self.advance_bytes(1);
+                        return Ok(Value::Table(result));
                     }
                 }
                 Some(b'}') => {
@@ -1439,8 +1481,14 @@ impl<'a> Parser<'a> {
         }
     }
 
-    /// インラインテーブル内の空白をスキップする（改行不可）。
+    /// インラインテーブル内の空白をスキップする。
+    ///
+    /// v1.0.0: 改行不可（エラー）。
+    /// v1.1.0: 空白・コメント・改行をスキップする。
     fn skip_inline_whitespace(&mut self) -> Result<(), Error> {
+        if self.version == TomlVersion::V1_1 {
+            return self.skip_whitespace_comment_newline();
+        }
         while let Some(b) = self.peek() {
             if b == b' ' || b == b'\t' {
                 self.advance_bytes(1);

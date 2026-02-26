@@ -1,4 +1,4 @@
-.PHONY: test cover pbt pbt-cover fuzz fuzzing fuzzing-parallel fuzzing-list check clippy fmt clean toml-test toml-test-time toml-test-ci
+.PHONY: test cover pbt pbt-cover fuzz fuzzing fuzzing-parallel fuzzing-list check clippy fmt clean toml-test-v1_0 toml-test-v1_1 toml-test-time toml-test-v1_0-ci toml-test-v1_1-ci
 
 # 全テストを実行する
 test:
@@ -54,16 +54,24 @@ fmt:
 	cargo fmt --all
 
 # toml-test (TOML v1.0) を実行する
-toml-test:
-	./scripts/run_toml_test.sh
+toml-test-v1_0:
+	TOML_VERSION=1.0 ./scripts/run_toml_test.sh
+
+# toml-test (TOML v1.1) を実行する
+toml-test-v1_1:
+	TOML_VERSION=1.1 ./scripts/run_toml_test.sh
 
 # toml-test の日時系テストのみを実行する
 toml-test-time:
 	./scripts/run_toml_test.sh -run 'valid/datetime/*,valid/local-time/*,valid/local-date/*,valid/local-datetime/*,invalid/datetime/*,invalid/local-time/*,invalid/local-date/*,invalid/local-datetime/*,encoder/datetime/*,encoder/local-time/*,encoder/local-date/*,encoder/local-datetime/*'
 
-# CI 向けに toml-test を実行する
-toml-test-ci:
-	TOML_TEST_UPDATE=1 ./scripts/run_toml_test.sh -parallel 4 -color never
+# CI 向けに toml-test (TOML v1.0) を実行する
+toml-test-v1_0-ci:
+	TOML_VERSION=1.0 TOML_TEST_UPDATE=1 ./scripts/run_toml_test.sh -parallel 4 -color never
+
+# CI 向けに toml-test (TOML v1.1) を実行する
+toml-test-v1_1-ci:
+	TOML_VERSION=1.1 TOML_TEST_UPDATE=1 ./scripts/run_toml_test.sh -parallel 4 -color never
 
 # ビルド成果物を削除する
 clean:

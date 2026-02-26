@@ -464,3 +464,109 @@ mod parse_success {
         assert_eq!(Value::Array(vec![]).type_name(), "array");
     }
 }
+
+mod v1_1 {
+    use shiguredo_toml::{TomlVersion, from_str_with_version};
+
+    /// \e エスケープが U+001B (ESC) になることを確認する。
+    #[test]
+    fn escape_e_v1_1() {
+        let t = from_str_with_version("a = \"\\e\"", TomlVersion::V1_1).unwrap();
+        assert_eq!(t["a"].as_str().unwrap(), "\u{001B}");
+    }
+
+    /// \x1B エスケープが U+001B (ESC) になることを確認する。
+    #[test]
+    fn escape_x_v1_1() {
+        let t = from_str_with_version("a = \"\\x1B\"", TomlVersion::V1_1).unwrap();
+        assert_eq!(t["a"].as_str().unwrap(), "\u{001B}");
+    }
+
+    /// \x00 エスケープが U+0000 (NUL) になることを確認する。
+    #[test]
+    fn escape_x_nul_v1_1() {
+        let t = from_str_with_version("a = \"\\x00\"", TomlVersion::V1_1).unwrap();
+        assert_eq!(t["a"].as_str().unwrap(), "\u{0000}");
+    }
+
+    /// V1_0 で \e がエラーになることを確認する。
+    #[test]
+    fn escape_e_v1_0_errors() {
+        let result = from_str_with_version("a = \"\\e\"", TomlVersion::V1_0);
+        assert!(result.is_err());
+    }
+
+    /// V1_0 で \x がエラーになることを確認する。
+    #[test]
+    fn escape_x_v1_0_errors() {
+        let result = from_str_with_version("a = \"\\x1B\"", TomlVersion::V1_0);
+        assert!(result.is_err());
+    }
+
+    /// V1_1 でインラインテーブルの末尾カンマが許可されることを確認する。
+    #[test]
+    fn inline_table_trailing_comma_v1_1() {
+        let t = from_str_with_version("a = {b = 1,}", TomlVersion::V1_1).unwrap();
+        assert_eq!(t["a"]["b"].as_integer().unwrap(), 1);
+    }
+
+    /// V1_1 でインラインテーブルの複数行が許可されることを確認する。
+    #[test]
+    fn inline_table_multiline_v1_1() {
+        let input = "a = {\n  b = 1,\n  c = 2,\n}";
+        let t = from_str_with_version(input, TomlVersion::V1_1).unwrap();
+        assert_eq!(t["a"]["b"].as_integer().unwrap(), 1);
+        assert_eq!(t["a"]["c"].as_integer().unwrap(), 2);
+    }
+
+    /// V1_0 でインラインテーブルの末尾カンマがエラーのままであることを確認する。
+    #[test]
+    fn inline_table_trailing_comma_v1_0_errors() {
+        let result = from_str_with_version("a = {b = 1,}", TomlVersion::V1_0);
+        assert!(result.is_err());
+    }
+
+    /// V1_1 でインラインテーブル内の改行がエラーのままであることを V1_0 で確認する。
+    #[test]
+    fn inline_table_multiline_v1_0_errors() {
+        let input = "a = {\n  b = 1\n}";
+        let result = from_str_with_version(input, TomlVersion::V1_0);
+        assert!(result.is_err());
+    }
+
+    /// V1_1 で秒省略の時刻が 07:32:00 として解析されることを確認する。
+    #[test]
+    fn datetime_without_seconds_v1_1() {
+        let t = from_str_with_version("t = 07:32", TomlVersion::V1_1).unwrap();
+        let dt = t["t"].as_datetime().unwrap();
+        let time = dt.time.as_ref().unwrap();
+        assert_eq!(time.hour, 7);
+        assert_eq!(time.minute, 32);
+        assert_eq!(time.second, 0);
+    }
+
+    /// V1_0 で秒省略の時刻がエラーになることを確認する。
+    #[test]
+    fn datetime_without_seconds_v1_0_errors() {
+        let result = from_str_with_version("t = 07:32", TomlVersion::V1_0);
+        assert!(result.is_err());
+    }
+
+    /// V1_1 で複数行リテラル文字列の CRLF が LF に正規化されることを確認する。
+    #[test]
+    fn ml_literal_string_crlf_normalized_v1_1() {
+        let input = "a = '''\r\nhello\r\nworld\r\n'''";
+        let t = from_str_with_version(input, TomlVersion::V1_1).unwrap();
+        // 開始直後の CRLF は削除され、内部の CRLF は LF に正規化される
+        assert_eq!(t["a"].as_str().unwrap(), "hello\nworld\n");
+    }
+
+    /// V1_0 で複数行リテラル文字列の CR が保持されることを確認する。
+    #[test]
+    fn ml_literal_string_cr_preserved_v1_0() {
+        let input = "a = '''\nhello\r\nworld\n'''";
+        let t = from_str_with_version(input, TomlVersion::V1_0).unwrap();
+        // V1_0 では CRLF がそのまま保持される
+        assert_eq!(t["a"].as_str().unwrap(), "hello\r\nworld\n");
+    }
+}

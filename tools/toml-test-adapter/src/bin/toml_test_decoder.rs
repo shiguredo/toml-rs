@@ -1,7 +1,7 @@
 use std::io::{self, Read};
 
 use serde_json::{Map, Value as JsonValue};
-use shiguredo_toml::{Datetime, Value};
+use shiguredo_toml::{Datetime, TomlVersion, Value};
 
 fn main() {
     let mut input = String::new();
@@ -9,7 +9,16 @@ fn main() {
         std::process::exit(1);
     }
 
-    let parsed = match shiguredo_toml::from_str(&input) {
+    let version = match std::env::var("TOML_VERSION").as_deref() {
+        Ok("1.0") | Err(_) => TomlVersion::V1_0,
+        Ok("1.1") => TomlVersion::V1_1,
+        Ok(v) => {
+            eprintln!("unsupported TOML_VERSION: {v}");
+            std::process::exit(1);
+        }
+    };
+
+    let parsed = match shiguredo_toml::from_str_with_version(&input, version) {
         Ok(v) => v,
         Err(_) => std::process::exit(1),
     };

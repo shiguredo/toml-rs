@@ -17,11 +17,11 @@ Please read <https://github.com/shiguredo/oss> before use.
 
 ## 概要
 
-Rust で実装された依存 0 の TOML v1.0.0 ライブラリです。
+Rust で実装された依存 0 の TOML ライブラリです。TOML v1.0.0 と v1.1.0 の両方に対応しています。
 
 ## 特徴
 
-- TOML v1.0.0 仕様に完全準拠
+- TOML v1.0.0 / v1.1.0 仕様に完全準拠
 - TOML 公式テストスイート [toml-test](https://github.com/toml-lang/toml-test) 全件パス
 - 依存ライブラリ 0
 - パーサとシリアライザを提供
@@ -34,8 +34,10 @@ Rust で実装された依存 0 の TOML v1.0.0 ライブラリです。
 
 ### パース
 
+`from_str` は TOML v1.0.0 としてパースします。
+
 ```rust
-use shiguredo_toml::{from_str, Value};
+use shiguredo_toml::from_str;
 
 let table = from_str(r#"
 [server]
@@ -58,6 +60,29 @@ assert_eq!(server["port"].as_integer().unwrap(), 8080);
 
 let servers = table["servers"].as_array().unwrap();
 assert_eq!(servers.len(), 2);
+```
+
+### バージョン指定でパース
+
+`from_str_with_version` で TOML バージョンを明示できます。
+
+```rust
+use shiguredo_toml::{from_str_with_version, TomlVersion};
+
+// TOML v1.0.0 として解析する
+let table = from_str_with_version(r#"
+host = "localhost"
+port = 8080
+"#, TomlVersion::V1_0).unwrap();
+
+// TOML v1.1.0 として解析する
+// 複数行インラインテーブル・末尾カンマ・\e エスケープ等が使用可能
+let table = from_str_with_version(r#"
+contact = {
+    name = "Alice",
+    email = "alice@example.com",
+}
+"#, TomlVersion::V1_1).unwrap();
 ```
 
 ### シリアライズ
@@ -159,26 +184,32 @@ for comment in doc.comments().iter() {
 
 - TOML v1.0.0
   - <https://toml.io/en/v1.0.0>
+- TOML v1.1.0
+  - <https://toml.io/en/v1.1.0>
 
 ## 準拠テスト (toml-test)
 
 TOML 公式テストスイート `toml-test` を 1 コマンドで実行できます。
 
 ```bash
-# valid / invalid / encoder を一括実行
-make toml-test
+# TOML v1.0.0 で実行 (valid / invalid / encoder を一括実行)
+make toml-test-v1_0
+
+# TOML v1.1.0 で実行
+make toml-test-v1_1
 
 # 日時系だけを素早く実行
 make toml-test-time
 
 # CI 向け実行
-make toml-test-ci
+make toml-test-v1_0-ci
+make toml-test-v1_1-ci
 ```
 
 補足:
 
 - 初回は `scripts/run_toml_test.sh` が `toml-test` を `.cache/toml-test` に clone します。
-- `TOML_TEST_UPDATE=1 make toml-test` で `toml-test` の更新を取り込みます。
+- `TOML_TEST_UPDATE=1 make toml-test-v1_0` / `TOML_TEST_UPDATE=1 make toml-test-v1_1` で `toml-test` の更新を取り込みます。
 - `go` コマンドが必要です。
 
 ## ライセンス

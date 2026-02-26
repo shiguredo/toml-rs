@@ -46,8 +46,10 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: "1.26"
-      - name: Run toml-test
-        run: make toml-test-ci
+      - name: Run toml-test (v1.0)
+        run: make toml-test-v1_0-ci
+      - name: Run toml-test (v1.1)
+        run: make toml-test-v1_1-ci
 
   slack_notify:
     needs: [ci, toml_test]
