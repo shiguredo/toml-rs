@@ -181,8 +181,8 @@ for comment in doc.comments().iter() {
 TOML 公式テストスイート `toml-test` を 1 コマンドで実行できます。
 
 ```bash
-# valid / invalid / encoder を一括実行
-make toml-test
+# TOML v1.0.0 で実行 (valid / invalid / encoder を一括実行)
+make toml-test-v1_0
 
 # TOML v1.1.0 で実行
 make toml-test-v1_1
@@ -191,7 +191,8 @@ make toml-test-v1_1
 make toml-test-time
 
 # CI 向け実行
-make toml-test-ci
+make toml-test-v1_0-ci
+make toml-test-v1_1-ci
 ```
 
 補足:
