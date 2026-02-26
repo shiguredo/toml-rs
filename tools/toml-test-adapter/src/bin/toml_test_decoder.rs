@@ -9,10 +9,13 @@ fn main() {
         std::process::exit(1);
     }
 
-    let version = if std::env::var("TOML_VERSION").as_deref() == Ok("1.1") {
-        TomlVersion::V1_1
-    } else {
-        TomlVersion::V1_0
+    let version = match std::env::var("TOML_VERSION").as_deref() {
+        Ok("1.0") | Err(_) => TomlVersion::V1_0,
+        Ok("1.1") => TomlVersion::V1_1,
+        Ok(v) => {
+            eprintln!("unsupported TOML_VERSION: {v}");
+            std::process::exit(1);
+        }
     };
 
     let parsed = match shiguredo_toml::from_str_with_version(&input, version) {
