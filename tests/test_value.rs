@@ -72,7 +72,7 @@ mod access {
     }
 
     #[test]
-    #[should_panic(expected = "キー")]
+    #[should_panic(expected = "key")]
     fn index_str_missing_panics() {
         let v = Value::Table(Table::new());
         let _ = &v["missing"];

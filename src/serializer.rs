@@ -42,9 +42,7 @@ impl Serializer {
     fn serialize_value(&mut self, value: &Value, path: &[String]) -> Result<(), Error> {
         match value {
             Value::Table(table) => self.serialize_table(table, path),
-            _ => Err(Error::serialize(
-                "トップレベルの値はテーブルでなければならない",
-            )),
+            _ => Err(Error::serialize("top-level value must be a table")),
         }
     }
 

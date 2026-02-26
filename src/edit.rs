@@ -79,11 +79,11 @@ impl Document {
         let span = self
             .spans
             .get(path)
-            .ok_or_else(|| Error::serialize("指定パスの値が見つからない"))?;
+            .ok_or_else(|| Error::serialize("value not found at the specified path"))?;
         let replacement = crate::to_inline_string(&new_value)?;
 
         if span.start > span.end || span.end > self.source.len() {
-            return Err(Error::serialize("値範囲が不正"));
+            return Err(Error::serialize("invalid value span"));
         }
 
         let mut next_source = self.source.clone();
@@ -101,7 +101,7 @@ impl Document {
     /// 文字列パスで指定した既存値を置換する。
     pub fn set_path(&mut self, path: &str, new_value: Value) -> Result<(), Error> {
         let parsed = parse_value_path(path)
-            .map_err(|msg| Error::serialize(format!("値パスの解析に失敗: {msg}")))?;
+            .map_err(|msg| Error::serialize(format!("failed to parse value path: {msg}")))?;
         self.set(&parsed, new_value)
     }
 }

@@ -82,13 +82,13 @@ impl Date {
     /// 日付を検証する。
     pub fn validate(&self) -> Result<(), String> {
         if self.month < 1 || self.month > 12 {
-            return Err(format!("月が範囲外: {}", self.month));
+            return Err(format!("month out of range: {}", self.month));
         }
         let max_day = days_in_month(self.year, self.month);
         if self.day < 1 || self.day > max_day {
             return Err(format!(
-                "日が範囲外: {}-{:02} の最大日数は {} だが {} が指定された",
-                self.year, self.month, max_day, self.day
+                "day out of range: max {} for {}-{:02}, got {}",
+                max_day, self.year, self.month, self.day
             ));
         }
         Ok(())
@@ -99,16 +99,16 @@ impl Time {
     /// 時刻を検証する。
     pub fn validate(&self) -> Result<(), String> {
         if self.hour > 23 {
-            return Err(format!("時が範囲外: {}", self.hour));
+            return Err(format!("hour out of range: {}", self.hour));
         }
         if self.minute > 59 {
-            return Err(format!("分が範囲外: {}", self.minute));
+            return Err(format!("minute out of range: {}", self.minute));
         }
         if self.second > 59 {
-            return Err(format!("秒が範囲外: {}", self.second));
+            return Err(format!("second out of range: {}", self.second));
         }
         if self.nanosecond > 999_999_999 {
-            return Err(format!("ナノ秒が範囲外: {}", self.nanosecond));
+            return Err(format!("nanosecond out of range: {}", self.nanosecond));
         }
         Ok(())
     }
@@ -121,7 +121,7 @@ impl Offset {
             Offset::Z => Ok(()),
             Offset::Custom { minutes } => {
                 if *minutes < -1439 || *minutes > 1439 {
-                    return Err(format!("オフセットが範囲外: {} 分", minutes));
+                    return Err(format!("offset out of range: {} minutes", minutes));
                 }
                 Ok(())
             }
@@ -178,15 +178,15 @@ impl fmt::Display for Datetime {
 /// 入力からちょうど `n` 桁の数値を読み取る。
 fn parse_n_digits(s: &str, n: usize) -> Result<(u32, &str), String> {
     if s.len() < n {
-        return Err(format!("{n} 桁の数値が必要だが入力が不足"));
+        return Err(format!("expected {n}-digit number but input is too short"));
     }
     let digits = &s[..n];
     if !digits.bytes().all(|b| b.is_ascii_digit()) {
-        return Err(format!("{n} 桁の数値が必要だが '{digits}' が見つかった"));
+        return Err(format!("expected {n}-digit number but found '{digits}'"));
     }
     let value = digits
         .parse::<u32>()
-        .map_err(|e| format!("数値変換エラー: {e}"))?;
+        .map_err(|e| format!("number conversion error: {e}"))?;
     Ok((value, &s[n..]))
 }
 
@@ -195,10 +195,10 @@ fn expect_byte(s: &str, expected: u8) -> Result<&str, String> {
     match s.as_bytes().first() {
         Some(&b) if b == expected => Ok(&s[1..]),
         Some(&b) => Err(format!(
-            "'{}' が必要だが '{}' が見つかった",
+            "expected '{}' but found '{}'",
             expected as char, b as char
         )),
-        None => Err(format!("'{}' が必要だが入力が終了", expected as char)),
+        None => Err(format!("expected '{}' but input ended", expected as char)),
     }
 }
 
@@ -232,7 +232,7 @@ pub(crate) fn parse_datetime_str_with_version(
         } else {
             let (time, rest) = parse_time_part_with_version(s, version)?;
             if !rest.is_empty() {
-                return Err(format!("時刻の後に余分な文字: '{rest}'"));
+                return Err(format!("unexpected characters after time: '{rest}'"));
             }
             return Ok(Datetime {
                 date: None,
@@ -260,8 +260,8 @@ pub(crate) fn parse_datetime_str_with_version(
         Some(&b' ') => &rest[1..],
         Some(&b) => {
             return Err(format!(
-                "日付の後に 'T' または空白が必要だが '{b}' が見つかった",
-                b = b as char
+                "expected 'T' or space after date but found '{}'",
+                b as char
             ));
         }
         None => unreachable!(),
@@ -284,7 +284,7 @@ pub(crate) fn parse_datetime_str_with_version(
     };
 
     if !rest.is_empty() {
-        return Err(format!("日時の後に余分な文字: '{rest}'"));
+        return Err(format!("unexpected characters after datetime: '{rest}'"));
     }
 
     Ok(Datetime {
@@ -332,7 +332,7 @@ fn parse_time_part_with_version(
         // 小数秒部分: 1 桁以上必要
         let digit_count = rest.bytes().take_while(|b| b.is_ascii_digit()).count();
         if digit_count == 0 {
-            return Err("小数秒に 1 桁以上の数字が必要".into());
+            return Err("fractional seconds require at least one digit".into());
         }
         let digits = &rest[..digit_count];
         // 9 桁にパディングまたは切り捨て
@@ -343,12 +343,12 @@ fn parse_time_part_with_version(
             }
             padded
                 .parse::<u32>()
-                .map_err(|e| format!("ナノ秒変換エラー: {e}"))?
+                .map_err(|e| format!("nanosecond conversion error: {e}"))?
         } else {
             // 9 桁を超える場合は切り捨て（四捨五入禁止）
             rest[..9]
                 .parse::<u32>()
-                .map_err(|e| format!("ナノ秒変換エラー: {e}"))?
+                .map_err(|e| format!("nanosecond conversion error: {e}"))?
         };
         (nanosecond, &rest[digit_count..])
     } else {
@@ -374,7 +374,7 @@ fn parse_offset_part(s: &str) -> Result<(Offset, &str), String> {
     let (minutes, rest) = parse_n_digits(rest, 2)?;
 
     if minutes > 59 {
-        return Err(format!("オフセットの分が範囲外: {minutes}"));
+        return Err(format!("offset minutes out of range: {minutes}"));
     }
 
     let total_minutes = (hours * 60 + minutes) as i16;

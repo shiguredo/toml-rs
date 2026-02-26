@@ -168,7 +168,7 @@ impl Index<&str> for Value {
 
     fn index(&self, key: &str) -> &Value {
         self.get(key)
-            .unwrap_or_else(|| panic!("キー '{key}' が見つからない"))
+            .unwrap_or_else(|| panic!("key '{key}' not found"))
     }
 }
 
@@ -178,7 +178,7 @@ impl Index<usize> for Value {
     fn index(&self, index: usize) -> &Value {
         match self {
             Value::Array(arr) => &arr[index],
-            _ => panic!("配列ではない値にインデックスアクセス"),
+            _ => panic!("index access on non-array value"),
         }
     }
 }

@@ -100,7 +100,7 @@ impl CommentIndex {
 /// 例: `servers[1].port`
 pub fn parse_value_path(path: &str) -> Result<ValuePath, String> {
     if path.is_empty() {
-        return Err("値パスが空".to_owned());
+        return Err("value path is empty".to_owned());
     }
 
     let bytes = path.as_bytes();
@@ -109,7 +109,7 @@ pub fn parse_value_path(path: &str) -> Result<ValuePath, String> {
 
     while i < bytes.len() {
         if bytes[i] == b'.' {
-            return Err("値パスに空のキーが含まれている".to_owned());
+            return Err("value path contains empty key".to_owned());
         }
 
         if bytes[i] == b'[' {
@@ -122,7 +122,7 @@ pub fn parse_value_path(path: &str) -> Result<ValuePath, String> {
                 i += 1;
             }
             if start == i {
-                return Err("値パスのキーが空".to_owned());
+                return Err("value path key is empty".to_owned());
             }
             segments.push(PathSegment::Key(path[start..i].to_owned()));
         }
@@ -135,11 +135,11 @@ pub fn parse_value_path(path: &str) -> Result<ValuePath, String> {
 
         if i < bytes.len() {
             if bytes[i] != b'.' {
-                return Err(format!("値パスの構文が不正: '{}'", path));
+                return Err(format!("invalid value path syntax: '{}'", path));
             }
             i += 1;
             if i >= bytes.len() {
-                return Err("値パスが '.' で終わっている".to_owned());
+                return Err("value path ends with '.'".to_owned());
             }
         }
     }
@@ -150,7 +150,7 @@ pub fn parse_value_path(path: &str) -> Result<ValuePath, String> {
 fn parse_index(path: &str, start: usize) -> Result<(usize, usize), String> {
     let bytes = path.as_bytes();
     if bytes.get(start) != Some(&b'[') {
-        return Err("配列インデックスの開始が不正".to_owned());
+        return Err("invalid array index start".to_owned());
     }
 
     let mut i = start + 1;
@@ -159,14 +159,14 @@ fn parse_index(path: &str, start: usize) -> Result<(usize, usize), String> {
         i += 1;
     }
     if num_start == i {
-        return Err("配列インデックスが空".to_owned());
+        return Err("array index is empty".to_owned());
     }
     if bytes.get(i) != Some(&b']') {
-        return Err("配列インデックスの閉じ ']' がない".to_owned());
+        return Err("array index missing closing ']'".to_owned());
     }
 
     let index = path[num_start..i]
         .parse::<usize>()
-        .map_err(|e| format!("配列インデックスの変換エラー: {e}"))?;
+        .map_err(|e| format!("array index conversion error: {e}"))?;
     Ok((index, i + 1))
 }

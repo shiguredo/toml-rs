@@ -158,7 +158,7 @@ impl<'a> Parser<'a> {
             }
             // 制御文字チェック（タブは許可）
             if b != b'\t' && (b <= 0x08 || (0x0A..=0x1F).contains(&b) || b == 0x7F) {
-                return Err(self.error(format!("コメント内の不正な制御文字: U+{b:04X}")));
+                return Err(self.error(format!("invalid control character in comment: U+{b:04X}")));
             }
             // UTF-8 文字として進める
             self.advance_char();
@@ -191,10 +191,10 @@ impl<'a> Parser<'a> {
                 Ok(())
             }
             Some(b) => Err(self.error(format!(
-                "'{}' が必要だが '{}' が見つかった",
+                "expected '{}' but found '{}'",
                 expected as char, b as char
             ))),
-            None => Err(self.error(format!("'{}' が必要だが入力が終了", expected as char))),
+            None => Err(self.error(format!("expected '{}' but input ended", expected as char))),
         }
     }
 
@@ -204,7 +204,7 @@ impl<'a> Parser<'a> {
             Ok(())
         } else {
             Err(self.error(format!(
-                "改行または EOF が必要だが '{}' が見つかった",
+                "expected newline or EOF but found '{}'",
                 self.rest.chars().next().unwrap_or('?')
             )))
         }
@@ -232,9 +232,7 @@ impl<'a> Parser<'a> {
                 }
                 Some(b'\r') => {
                     if !self.consume_newline() {
-                        return Err(
-                            self.error("不正な改行: TOML v1.0.0 の改行は LF または CRLF のみ")
-                        );
+                        return Err(self.error("invalid newline: TOML v1.0.0 requires LF or CRLF"));
                     }
                 }
                 Some(b'[') => {
@@ -303,7 +301,7 @@ impl<'a> Parser<'a> {
                     return Err(Error::parse(
                         header_pos,
                         format!(
-                            "'{}' は配列テーブルとして定義されているため通常テーブルにできない",
+                            "'{}' is defined as an array table and cannot be a standard table",
                             path_to_string(&path)
                         ),
                     ));
@@ -312,19 +310,19 @@ impl<'a> Parser<'a> {
                 let entry = table.get_mut(part).ok_or_else(|| {
                     Error::parse(
                         header_pos,
-                        format!("内部エラー: 配列テーブル '{part}' が存在しない"),
+                        format!("internal error: array table '{part}' not found"),
                     )
                 })?;
                 let array = entry
                     .as_array_mut()
-                    .ok_or_else(|| Error::parse(header_pos, format!("'{part}' は配列ではない")))?;
+                    .ok_or_else(|| Error::parse(header_pos, format!("'{part}' is not an array")))?;
                 let last = array.last_mut().ok_or_else(|| {
-                    Error::parse(header_pos, format!("配列テーブル '{part}' が空"))
+                    Error::parse(header_pos, format!("array table '{part}' is empty"))
                 })?;
                 table = last.as_table_mut().ok_or_else(|| {
                     Error::parse(
                         header_pos,
-                        format!("配列テーブル '{part}' の要素がテーブルではない"),
+                        format!("element of array table '{part}' is not a table"),
                     )
                 })?;
                 continue;
@@ -335,14 +333,14 @@ impl<'a> Parser<'a> {
                     Some(TableState::Explicit) => {
                         return Err(Error::parse(
                             header_pos,
-                            format!("テーブル '{}' は既に定義されている", path_to_string(&path)),
+                            format!("table '{}' is already defined", path_to_string(&path)),
                         ));
                     }
                     Some(TableState::Dotted) => {
                         return Err(Error::parse(
                             header_pos,
                             format!(
-                                "テーブル '{}' は dotted key により既に定義されている",
+                                "table '{}' is already defined by dotted key",
                                 path_to_string(&path)
                             ),
                         ));
@@ -351,7 +349,7 @@ impl<'a> Parser<'a> {
                         return Err(Error::parse(
                             header_pos,
                             format!(
-                                "テーブル '{}' はインラインテーブルとして定義されているため再定義不可",
+                                "table '{}' is defined as an inline table and cannot be redefined",
                                 path_to_string(&path)
                             ),
                         ));
@@ -369,10 +367,7 @@ impl<'a> Parser<'a> {
                     Some(other) => {
                         return Err(Error::parse(
                             header_pos,
-                            format!(
-                                "キー '{part}' は既に {} として定義されている",
-                                other.type_name()
-                            ),
+                            format!("key '{part}' is already defined as {}", other.type_name()),
                         ));
                     }
                     None => unreachable!(),
@@ -382,7 +377,7 @@ impl<'a> Parser<'a> {
                     return Err(Error::parse(
                         header_pos,
                         format!(
-                            "テーブル '{}' はインラインテーブルとして定義されているため変更不可",
+                            "table '{}' is defined as an inline table and cannot be extended",
                             path_to_string(&prefix_path)
                         ),
                     ));
@@ -400,10 +395,7 @@ impl<'a> Parser<'a> {
                     Some(other) => {
                         return Err(Error::parse(
                             header_pos,
-                            format!(
-                                "キー '{part}' は既に {} として定義されている",
-                                other.type_name()
-                            ),
+                            format!("key '{part}' is already defined as {}", other.type_name()),
                         ));
                     }
                     None => unreachable!(),
@@ -430,7 +422,7 @@ impl<'a> Parser<'a> {
                             return Err(Error::parse(
                                 header_pos,
                                 format!(
-                                    "'{}' は通常テーブルとして定義されているため配列テーブルにできない",
+                                    "'{}' is defined as a standard table and cannot be an array table",
                                     path_to_string(&path)
                                 ),
                             ));
@@ -440,7 +432,7 @@ impl<'a> Parser<'a> {
                         return Err(Error::parse(
                             header_pos,
                             format!(
-                                "'{}' はインラインテーブルとして定義されているため配列テーブルにできない",
+                                "'{}' is defined as an inline table and cannot be an array table",
                                 path_to_string(&path)
                             ),
                         ));
@@ -451,7 +443,7 @@ impl<'a> Parser<'a> {
                 if self.array_table_paths.contains(&prefix_path) {
                     if let Some(entry) = table.get_mut(part) {
                         let array = entry.as_array_mut().ok_or_else(|| {
-                            Error::parse(header_pos, format!("'{part}' は配列ではない"))
+                            Error::parse(header_pos, format!("'{part}' is not an array"))
                         })?;
                         array.push(Value::Table(Table::new()));
                         self.array_table_current_index
@@ -472,7 +464,7 @@ impl<'a> Parser<'a> {
                             return Err(Error::parse(
                                 header_pos,
                                 format!(
-                                    "静的配列 '{}' に配列テーブルで追加はできない",
+                                    "cannot append to static array '{}' using array table syntax",
                                     path_to_string(&path)
                                 ),
                             ));
@@ -480,7 +472,7 @@ impl<'a> Parser<'a> {
                         return Err(Error::parse(
                             header_pos,
                             format!(
-                                "キー '{part}' は既に {} として定義されている",
+                                "key '{part}' is already defined as {}",
                                 existing.type_name()
                             ),
                         ));
@@ -495,19 +487,19 @@ impl<'a> Parser<'a> {
                     let entry = table.get_mut(part).ok_or_else(|| {
                         Error::parse(
                             header_pos,
-                            format!("内部エラー: 配列テーブル '{part}' が存在しない"),
+                            format!("internal error: array table '{part}' not found"),
                         )
                     })?;
                     let array = entry.as_array_mut().ok_or_else(|| {
-                        Error::parse(header_pos, format!("'{part}' は配列ではない"))
+                        Error::parse(header_pos, format!("'{part}' is not an array"))
                     })?;
                     let last = array.last_mut().ok_or_else(|| {
-                        Error::parse(header_pos, format!("配列テーブル '{part}' が空"))
+                        Error::parse(header_pos, format!("array table '{part}' is empty"))
                     })?;
                     table = last.as_table_mut().ok_or_else(|| {
                         Error::parse(
                             header_pos,
-                            format!("配列テーブル '{part}' の要素がテーブルではない"),
+                            format!("element of array table '{part}' is not a table"),
                         )
                     })?;
                     continue;
@@ -517,7 +509,7 @@ impl<'a> Parser<'a> {
                     return Err(Error::parse(
                         header_pos,
                         format!(
-                            "テーブル '{}' はインラインテーブルとして定義されているため変更不可",
+                            "table '{}' is defined as an inline table and cannot be extended",
                             path_to_string(&prefix_path)
                         ),
                     ));
@@ -535,10 +527,7 @@ impl<'a> Parser<'a> {
                     Some(other) => {
                         return Err(Error::parse(
                             header_pos,
-                            format!(
-                                "キー '{part}' は既に {} として定義されている",
-                                other.type_name()
-                            ),
+                            format!("key '{part}' is already defined as {}", other.type_name()),
                         ));
                     }
                     None => unreachable!(),
@@ -627,7 +616,7 @@ impl<'a> Parser<'a> {
                             return Err(Error::parse(
                                 key_pos,
                                 format!(
-                                    "インラインテーブル内でキー '{}' は既に定義されているため dotted key で拡張できない",
+                                    "key '{}' is already defined in inline table and cannot be extended with dotted key",
                                     part
                                 ),
                             ));
@@ -638,7 +627,7 @@ impl<'a> Parser<'a> {
                         return Err(Error::parse(
                             key_pos,
                             format!(
-                                "キー '{part}' は既に {} として定義されているためテーブルにできない",
+                                "key '{part}' is already defined as {} and cannot be used as a table",
                                 other.type_name()
                             ),
                         ));
@@ -656,7 +645,7 @@ impl<'a> Parser<'a> {
         if current.contains_key(final_key) {
             return Err(Error::parse(
                 key_pos,
-                format!("キー '{final_key}' は既に定義されている"),
+                format!("key '{final_key}' is already defined"),
             ));
         }
         current.insert(final_key.clone(), value);
@@ -692,19 +681,19 @@ impl<'a> Parser<'a> {
         match self.peek() {
             Some(b'"') => {
                 if self.rest.starts_with("\"\"\"") {
-                    return Err(self.error("複数行文字列はキーとして使用できない"));
+                    return Err(self.error("multiline strings cannot be used as keys"));
                 }
                 self.parse_basic_string()
             }
             Some(b'\'') => {
                 if self.rest.starts_with("'''") {
-                    return Err(self.error("複数行文字列はキーとして使用できない"));
+                    return Err(self.error("multiline strings cannot be used as keys"));
                 }
                 self.parse_literal_string()
             }
             Some(b) if is_bare_key_char(b) => self.parse_bare_key(),
-            Some(b) => Err(self.error(format!("キーの開始文字が不正: '{}'", b as char))),
-            None => Err(self.error("キーが必要だが入力が終了")),
+            Some(b) => Err(self.error(format!("invalid key start character: '{}'", b as char))),
+            None => Err(self.error("expected key but input ended")),
         }
     }
 
@@ -720,7 +709,7 @@ impl<'a> Parser<'a> {
             }
         }
         if len == 0 {
-            return Err(self.error("空のベアキー"));
+            return Err(self.error("empty bare key"));
         }
         let key = start[..len].to_owned();
         self.advance_bytes(len);
@@ -734,7 +723,7 @@ impl<'a> Parser<'a> {
         let start = self.position();
         self.depth += 1;
         if self.depth > MAX_DEPTH {
-            return Err(self.error(format!("ネスト深さが最大値 {MAX_DEPTH} を超えた")));
+            return Err(self.error(format!("nesting depth exceeds maximum of {MAX_DEPTH}")));
         }
         let result = self.parse_value_inner();
         self.depth -= 1;
@@ -779,8 +768,8 @@ impl<'a> Parser<'a> {
                 _ => self.parse_number_or_datetime(),
             },
             Some(b) if b.is_ascii_digit() => self.parse_number_or_datetime(),
-            Some(b) => Err(self.error(format!("不正な値の開始文字: '{}'", b as char))),
-            None => Err(self.error("値が必要だが入力が終了")),
+            Some(b) => Err(self.error(format!("invalid value start character: '{}'", b as char))),
+            None => Err(self.error("expected value but input ended")),
         }
     }
 
@@ -802,17 +791,19 @@ impl<'a> Parser<'a> {
                     result.push(self.parse_escape_sequence()?);
                 }
                 Some(b'\n') | Some(b'\r') => {
-                    return Err(self.error("基本文字列内に改行は不可"));
+                    return Err(self.error("newline not allowed in basic string"));
                 }
                 Some(b) if is_control_char(b) => {
-                    return Err(self.error(format!("基本文字列内の不正な制御文字: U+{b:04X}")));
+                    return Err(self.error(format!(
+                        "invalid control character in basic string: U+{b:04X}"
+                    )));
                 }
                 Some(_) => {
                     let ch = self.advance_char().unwrap();
                     result.push(ch);
                 }
                 None => {
-                    return Err(self.error("基本文字列が閉じられていない"));
+                    return Err(self.error("unterminated basic string"));
                 }
             }
         }
@@ -854,17 +845,17 @@ impl<'a> Parser<'a> {
                     }
                 }
                 Some(b) if is_ml_basic_control_char(b) => {
-                    return Err(
-                        self.error(format!("複数行基本文字列内の不正な制御文字: U+{b:04X}"))
-                    );
+                    return Err(self.error(format!(
+                        "invalid control character in multiline basic string: U+{b:04X}"
+                    )));
                 }
                 // V1_1: \r\n を \n に正規化する。\r 単体はエラー。
                 Some(b'\r') if self.version == TomlVersion::V1_1 => {
                     self.advance_bytes(1);
                     if self.peek() != Some(b'\n') {
-                        return Err(
-                            self.error("TOML v1.1.0 では複数行基本文字列内に単独の CR は不可")
-                        );
+                        return Err(self.error(
+                            "bare CR not allowed in multiline basic string in TOML v1.1.0",
+                        ));
                     }
                     // \r\n の \r を消費。次のループで \n を処理する。
                 }
@@ -873,7 +864,7 @@ impl<'a> Parser<'a> {
                     result.push(ch);
                 }
                 None => {
-                    return Err(self.error("複数行基本文字列が閉じられていない"));
+                    return Err(self.error("unterminated multiline basic string"));
                 }
             }
         }
@@ -928,18 +919,20 @@ impl<'a> Parser<'a> {
                     return Ok(result);
                 }
                 Some(&b'\n') | Some(&b'\r') => {
-                    return Err(self.error("リテラル文字列内に改行は不可"));
+                    return Err(self.error("newline not allowed in literal string"));
                 }
                 Some(&b) if is_control_char(b) => {
                     self.advance_bytes(len);
-                    return Err(self.error(format!("リテラル文字列内の不正な制御文字: U+{b:04X}")));
+                    return Err(self.error(format!(
+                        "invalid control character in literal string: U+{b:04X}"
+                    )));
                 }
                 Some(_) => {
                     let ch_len = utf8_char_len(self.rest.as_bytes()[len]);
                     len += ch_len;
                 }
                 None => {
-                    return Err(self.error("リテラル文字列が閉じられていない"));
+                    return Err(self.error("unterminated literal string"));
                 }
             }
         }
@@ -972,17 +965,17 @@ impl<'a> Parser<'a> {
 
             match self.peek() {
                 Some(b) if b != b'\t' && b != b'\n' && b != b'\r' && is_control_char(b) => {
-                    return Err(
-                        self.error(format!("複数行リテラル文字列内の不正な制御文字: U+{b:04X}"))
-                    );
+                    return Err(self.error(format!(
+                        "invalid control character in multiline literal string: U+{b:04X}"
+                    )));
                 }
                 // V1_1: \r\n を \n に正規化する。\r 単体はエラー。
                 Some(b'\r') if self.version == TomlVersion::V1_1 => {
                     self.advance_bytes(1);
                     if self.peek() != Some(b'\n') {
-                        return Err(
-                            self.error("TOML v1.1.0 では複数行リテラル文字列内に単独の CR は不可")
-                        );
+                        return Err(self.error(
+                            "bare CR not allowed in multiline literal string in TOML v1.1.0",
+                        ));
                     }
                     // \r\n の \r を消費。次のループで \n を処理する。
                 }
@@ -991,7 +984,7 @@ impl<'a> Parser<'a> {
                     result.push(ch);
                 }
                 None => {
-                    return Err(self.error("複数行リテラル文字列が閉じられていない"));
+                    return Err(self.error("unterminated multiline literal string"));
                 }
             }
         }
@@ -1046,8 +1039,8 @@ impl<'a> Parser<'a> {
                 self.advance_bytes(1);
                 self.parse_unicode_escape(2)
             }
-            Some(b) => Err(self.error(format!("不正なエスケープシーケンス: '\\{}'", b as char))),
-            None => Err(self.error("エスケープシーケンスが不完全")),
+            Some(b) => Err(self.error(format!("invalid escape sequence: '\\{}'", b as char))),
+            None => Err(self.error("incomplete escape sequence")),
         }
     }
 
@@ -1055,22 +1048,22 @@ impl<'a> Parser<'a> {
     fn parse_unicode_escape(&mut self, digit_count: usize) -> Result<char, Error> {
         if self.rest.len() < digit_count {
             return Err(self.error(format!(
-                "Unicode エスケープに {digit_count} 桁の16進数が必要だが入力が不足"
+                "Unicode escape requires {digit_count} hex digits but input is too short"
             )));
         }
 
         let hex_str = &self.rest[..digit_count];
         if !hex_str.bytes().all(|b| b.is_ascii_hexdigit()) {
-            return Err(self.error(format!("Unicode エスケープの16進数が不正: '{hex_str}'")));
+            return Err(self.error(format!("invalid hex digits in Unicode escape: '{hex_str}'")));
         }
 
         let code_point = u32::from_str_radix(hex_str, 16)
-            .map_err(|e| self.error(format!("Unicode エスケープの変換エラー: {e}")))?;
+            .map_err(|e| self.error(format!("Unicode escape conversion error: {e}")))?;
 
         self.advance_bytes(digit_count);
 
         char::from_u32(code_point)
-            .ok_or_else(|| self.error(format!("不正な Unicode スカラー値: U+{code_point:04X}")))
+            .ok_or_else(|| self.error(format!("invalid Unicode scalar value: U+{code_point:04X}")))
     }
 
     // ========== ブール値解析 ==========
@@ -1080,7 +1073,7 @@ impl<'a> Parser<'a> {
             self.advance_bytes(4);
             Ok(Value::Boolean(true))
         } else {
-            Err(self.error("'true' が必要"))
+            Err(self.error("expected 'true'"))
         }
     }
 
@@ -1089,7 +1082,7 @@ impl<'a> Parser<'a> {
             self.advance_bytes(5);
             Ok(Value::Boolean(false))
         } else {
-            Err(self.error("'false' が必要"))
+            Err(self.error("expected 'false'"))
         }
     }
 
@@ -1108,7 +1101,7 @@ impl<'a> Parser<'a> {
             self.advance_bytes(3);
             return Ok(Value::Float(f64::INFINITY));
         }
-        Err(self.error("'inf' が必要"))
+        Err(self.error("expected 'inf'"))
     }
 
     fn parse_nan(&mut self, negative: bool) -> Result<Value, Error> {
@@ -1124,7 +1117,7 @@ impl<'a> Parser<'a> {
             self.advance_bytes(3);
             return Ok(Value::Float(f64::NAN));
         }
-        Err(self.error("'nan' が必要"))
+        Err(self.error("expected 'nan'"))
     }
 
     // ========== 数値/日時解析 ==========
@@ -1183,7 +1176,7 @@ impl<'a> Parser<'a> {
         // 10 進整数部分を読む
         let int_len = scan_digits(self.rest);
         if int_len == 0 {
-            return Err(Error::parse(start_pos, "数値が必要"));
+            return Err(Error::parse(start_pos, "expected number"));
         }
 
         let int_part = &self.rest[..int_len];
@@ -1192,7 +1185,7 @@ impl<'a> Parser<'a> {
         if int_part.as_bytes()[0] == b'0' && int_len > 1 {
             let second = int_part.as_bytes()[1];
             if second.is_ascii_digit() || second == b'_' {
-                return Err(Error::parse(start_pos, "先頭ゼロは許可されていない"));
+                return Err(Error::parse(start_pos, "leading zeros are not allowed"));
             }
         }
 
@@ -1201,12 +1194,18 @@ impl<'a> Parser<'a> {
         // 浮動小数点の判定
         if self.peek() == Some(b'.') {
             if !matches!(self.peek_at(1), Some(b) if b.is_ascii_digit()) {
-                return Err(Error::parse(self.position(), "小数点の後に数字が必要"));
+                return Err(Error::parse(
+                    self.position(),
+                    "expected digit after decimal point",
+                ));
             }
             self.advance_bytes(1); // '.'
             let frac_len = scan_digits(self.rest);
             if frac_len == 0 {
-                return Err(Error::parse(self.position(), "小数点の後に数字が必要"));
+                return Err(Error::parse(
+                    self.position(),
+                    "expected digit after decimal point",
+                ));
             }
             self.advance_bytes(frac_len);
 
@@ -1217,7 +1216,7 @@ impl<'a> Parser<'a> {
                 }
                 let exp_len = scan_digits(self.rest);
                 if exp_len == 0 {
-                    return Err(Error::parse(self.position(), "指数部に数字が必要"));
+                    return Err(Error::parse(self.position(), "expected digit in exponent"));
                 }
                 self.advance_bytes(exp_len);
             }
@@ -1233,7 +1232,7 @@ impl<'a> Parser<'a> {
             }
             let exp_len = scan_digits(self.rest);
             if exp_len == 0 {
-                return Err(Error::parse(self.position(), "指数部に数字が必要"));
+                return Err(Error::parse(self.position(), "expected digit in exponent"));
             }
             self.advance_bytes(exp_len);
 
@@ -1249,7 +1248,7 @@ impl<'a> Parser<'a> {
         let cleaned: String = full_raw.chars().filter(|c| *c != '_').collect();
         let n = cleaned
             .parse::<i64>()
-            .map_err(|e| Error::parse(start_pos, format!("整数変換エラー: {e}")))?;
+            .map_err(|e| Error::parse(start_pos, format!("integer conversion error: {e}")))?;
         Ok(Value::Integer(n))
     }
 
@@ -1258,7 +1257,7 @@ impl<'a> Parser<'a> {
         let hex_start = self.rest;
         let len = scan_hex_digits(self.rest);
         if len == 0 {
-            return Err(Error::parse(start_pos, "16進数の数字が必要"));
+            return Err(Error::parse(start_pos, "expected hex digit"));
         }
         let raw = &hex_start[..len];
         validate_underscore_rules(raw, start_pos)?;
@@ -1266,7 +1265,7 @@ impl<'a> Parser<'a> {
 
         let cleaned: String = raw.chars().filter(|c| *c != '_').collect();
         let n = i64::from_str_radix(&cleaned, 16)
-            .map_err(|e| Error::parse(start_pos, format!("16進整数変換エラー: {e}")))?;
+            .map_err(|e| Error::parse(start_pos, format!("hex integer conversion error: {e}")))?;
         Ok(Value::Integer(n))
     }
 
@@ -1275,7 +1274,7 @@ impl<'a> Parser<'a> {
         let oct_start = self.rest;
         let len = scan_oct_digits(self.rest);
         if len == 0 {
-            return Err(Error::parse(start_pos, "8進数の数字が必要"));
+            return Err(Error::parse(start_pos, "expected octal digit"));
         }
         let raw = &oct_start[..len];
         validate_underscore_rules(raw, start_pos)?;
@@ -1283,7 +1282,7 @@ impl<'a> Parser<'a> {
 
         let cleaned: String = raw.chars().filter(|c| *c != '_').collect();
         let n = i64::from_str_radix(&cleaned, 8)
-            .map_err(|e| Error::parse(start_pos, format!("8進整数変換エラー: {e}")))?;
+            .map_err(|e| Error::parse(start_pos, format!("octal integer conversion error: {e}")))?;
         Ok(Value::Integer(n))
     }
 
@@ -1292,15 +1291,16 @@ impl<'a> Parser<'a> {
         let bin_start = self.rest;
         let len = scan_bin_digits(self.rest);
         if len == 0 {
-            return Err(Error::parse(start_pos, "2進数の数字が必要"));
+            return Err(Error::parse(start_pos, "expected binary digit"));
         }
         let raw = &bin_start[..len];
         validate_underscore_rules(raw, start_pos)?;
         self.advance_bytes(len);
 
         let cleaned: String = raw.chars().filter(|c| *c != '_').collect();
-        let n = i64::from_str_radix(&cleaned, 2)
-            .map_err(|e| Error::parse(start_pos, format!("2進整数変換エラー: {e}")))?;
+        let n = i64::from_str_radix(&cleaned, 2).map_err(|e| {
+            Error::parse(start_pos, format!("binary integer conversion error: {e}"))
+        })?;
         Ok(Value::Integer(n))
     }
 
@@ -1316,7 +1316,7 @@ impl<'a> Parser<'a> {
         let cleaned: String = raw.chars().filter(|c| *c != '_').collect();
         let f: f64 = cleaned
             .parse::<f64>()
-            .map_err(|e| Error::parse(start_pos, format!("浮動小数点数変換エラー: {e}")))?;
+            .map_err(|e| Error::parse(start_pos, format!("float conversion error: {e}")))?;
         Ok(Value::Float(f))
     }
 
@@ -1399,7 +1399,7 @@ impl<'a> Parser<'a> {
                     return Ok(Value::Array(result));
                 }
                 _ => {
-                    return Err(self.error("配列内で ',' または ']' が必要"));
+                    return Err(self.error("expected ',' or ']' in array"));
                 }
             }
         }
@@ -1456,7 +1456,7 @@ impl<'a> Parser<'a> {
                         if self.version == TomlVersion::V1_0 {
                             return Err(Error::parse(
                                 self.position(),
-                                "TOML v1.0.0 ではインラインテーブルの末尾カンマは不可",
+                                "trailing comma not allowed in inline table in TOML v1.0.0",
                             ));
                         }
                         // V1_1: 末尾カンマ許可
@@ -1471,11 +1471,11 @@ impl<'a> Parser<'a> {
                 Some(b'\n') | Some(b'\r') => {
                     return Err(Error::parse(
                         self.position(),
-                        "TOML v1.0.0 ではインラインテーブル内に改行は不可",
+                        "newline not allowed in inline table in TOML v1.0.0",
                     ));
                 }
                 _ => {
-                    return Err(self.error("インラインテーブル内で ',' または '}' が必要"));
+                    return Err(self.error("expected ',' or '}' in inline table"));
                 }
             }
         }
@@ -1495,7 +1495,7 @@ impl<'a> Parser<'a> {
             } else if b == b'\n' || b == b'\r' {
                 return Err(Error::parse(
                     self.position(),
-                    "TOML v1.0.0 ではインラインテーブル内に改行は不可",
+                    "newline not allowed in inline table in TOML v1.0.0",
                 ));
             } else {
                 break;
@@ -1580,14 +1580,23 @@ fn validate_underscore_rules(s: &str, pos: usize) -> Result<(), Error> {
         return Ok(());
     }
     if bytes[0] == b'_' {
-        return Err(Error::parse(pos, "数値の先頭にアンダースコアは不可"));
+        return Err(Error::parse(
+            pos,
+            "leading underscore not allowed in number",
+        ));
     }
     if bytes[bytes.len() - 1] == b'_' {
-        return Err(Error::parse(pos, "数値の末尾にアンダースコアは不可"));
+        return Err(Error::parse(
+            pos,
+            "trailing underscore not allowed in number",
+        ));
     }
     for window in bytes.windows(2) {
         if window[0] == b'_' && window[1] == b'_' {
-            return Err(Error::parse(pos, "連続するアンダースコアは不可"));
+            return Err(Error::parse(
+                pos,
+                "consecutive underscores not allowed in number",
+            ));
         }
     }
     Ok(())
@@ -1611,31 +1620,28 @@ fn navigate_table_mut<'a>(
             let entry = table.get_mut(part).ok_or_else(|| {
                 Error::parse(
                     err_pos,
-                    format!("内部エラー: 配列テーブル '{part}' が存在しない"),
+                    format!("internal error: array table '{part}' not found"),
                 )
             })?;
             let array = entry
                 .as_array_mut()
-                .ok_or_else(|| Error::parse(err_pos, format!("'{part}' は配列ではない")))?;
+                .ok_or_else(|| Error::parse(err_pos, format!("'{part}' is not an array")))?;
             let last = array
                 .last_mut()
-                .ok_or_else(|| Error::parse(err_pos, format!("配列テーブル '{part}' が空")))?;
+                .ok_or_else(|| Error::parse(err_pos, format!("array table '{part}' is empty")))?;
             table = last.as_table_mut().ok_or_else(|| {
                 Error::parse(
                     err_pos,
-                    format!("配列テーブル '{part}' の要素がテーブルではない"),
+                    format!("element of array table '{part}' is not a table"),
                 )
             })?;
         } else {
             let entry = table.get_mut(part).ok_or_else(|| {
-                Error::parse(
-                    err_pos,
-                    format!("内部エラー: テーブル '{part}' が存在しない"),
-                )
+                Error::parse(err_pos, format!("internal error: table '{part}' not found"))
             })?;
             table = entry
                 .as_table_mut()
-                .ok_or_else(|| Error::parse(err_pos, format!("'{part}' はテーブルではない")))?;
+                .ok_or_else(|| Error::parse(err_pos, format!("'{part}' is not a table")))?;
         }
     }
 
@@ -1663,7 +1669,7 @@ fn insert_dotted_key(
             return Err(Error::parse(
                 key_pos,
                 format!(
-                    "インラインテーブル '{}' にキーを追加できない",
+                    "cannot add key to inline table '{}'",
                     path_to_string(&full_path)
                 ),
             ));
@@ -1672,7 +1678,7 @@ fn insert_dotted_key(
             return Err(Error::parse(
                 key_pos,
                 format!(
-                    "テーブル '{}' は [header] で定義済みのため dotted key で拡張できない",
+                    "table '{}' is defined by [header] and cannot be extended with dotted key",
                     path_to_string(&full_path)
                 ),
             ));
@@ -1685,7 +1691,7 @@ fn insert_dotted_key(
                     return Err(Error::parse(
                         key_pos,
                         format!(
-                            "キー '{part}' は既に {} として定義されているためテーブルにできない",
+                            "key '{part}' is already defined as {} and cannot be used as a table",
                             other.type_name()
                         ),
                     ));
@@ -1704,7 +1710,7 @@ fn insert_dotted_key(
     if current.contains_key(final_key) {
         return Err(Error::parse(
             key_pos,
-            format!("キー '{final_key}' は既に定義されている"),
+            format!("key '{final_key}' is already defined"),
         ));
     }
 
