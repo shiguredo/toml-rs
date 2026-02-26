@@ -1,0 +1,9 @@
+---
+source: tests/snapshot_edit.rs
+expression: doc.as_str()
+---
+[env]
+FOO = "BAR"
+PIYO = "FUGA"
+
+[target.aarch64-unknown-linux-gnu]

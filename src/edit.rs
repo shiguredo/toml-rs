@@ -181,8 +181,10 @@ impl Document {
         }
 
         // セクションテーブル: SectionIndex からセクションの body_end に挿入する
+        // body_end は次のセクションヘッダ直前を指すため、末尾の空行を除いた位置に挿入する
         if let Some(section_span) = self.sections.get(parent_path) {
-            return Ok(section_span.body_end);
+            let pos = strip_trailing_blank_lines(&self.source, section_span.body_end);
+            return Ok(pos);
         }
 
         Err(Error::serialize(
@@ -295,6 +297,33 @@ fn format_key(key: &str) -> String {
     } else {
         key.to_owned()
     }
+}
+
+/// セクション body_end から末尾の空行を逆方向にスキップし、
+/// 最後の有効な行の直後の位置を返す。
+fn strip_trailing_blank_lines(source: &str, body_end: usize) -> usize {
+    let bytes = source.as_bytes();
+    let mut pos = body_end;
+
+    // 末尾の空行（改行のみの行）を逆方向にスキップする
+    while pos > 0 {
+        // 直前の改行を確認する
+        if bytes[pos - 1] != b'\n' {
+            break;
+        }
+        // この改行が空行（直前が行頭または改行）かどうかを判定する
+        if pos >= 2 && bytes[pos - 2] == b'\n' {
+            // 空行を 1 つスキップする
+            pos -= 1;
+        } else if pos == 1 {
+            // ソース先頭の改行のみの行
+            pos -= 1;
+        } else {
+            break;
+        }
+    }
+
+    pos
 }
 
 fn value_at_path<'a>(table: &'a Table, path: &[PathSegment]) -> Option<&'a Value> {
