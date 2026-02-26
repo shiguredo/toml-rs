@@ -55,7 +55,7 @@ fmt:
 
 # toml-test (TOML v1.0) を実行する
 toml-test-v1_0:
-	./scripts/run_toml_test.sh
+	TOML_VERSION=1.0 ./scripts/run_toml_test.sh
 
 # toml-test (TOML v1.1) を実行する
 toml-test-v1_1:
@@ -67,7 +67,7 @@ toml-test-time:
 
 # CI 向けに toml-test (TOML v1.0) を実行する
 toml-test-v1_0-ci:
-	TOML_TEST_UPDATE=1 ./scripts/run_toml_test.sh -parallel 4 -color never
+	TOML_VERSION=1.0 TOML_TEST_UPDATE=1 ./scripts/run_toml_test.sh -parallel 4 -color never
 
 # CI 向けに toml-test (TOML v1.1) を実行する
 toml-test-v1_1-ci:
