@@ -9,6 +9,7 @@ cargo-fuzz = true
 
 [dependencies]
 libfuzzer-sys = "0.4"
+arbitrary = { version = "1", features = ["derive"] }
 shiguredo_toml = { path = ".." }
 
 [[bin]]
@@ -24,4 +25,24 @@ doc = false
 [[bin]]
 name = "fuzz_edit"
 path = "fuzz_targets/fuzz_edit.rs"
+doc = false
+
+[[bin]]
+name = "fuzz_edit_arb"
+path = "fuzz_targets/fuzz_edit_arb.rs"
+doc = false
+
+[[bin]]
+name = "fuzz_value_path"
+path = "fuzz_targets/fuzz_value_path.rs"
+doc = false
+
+[[bin]]
+name = "fuzz_serializer"
+path = "fuzz_targets/fuzz_serializer.rs"
+doc = false
+
+[[bin]]
+name = "fuzz_parse_v1_1"
+path = "fuzz_targets/fuzz_parse_v1_1.rs"
 doc = false
