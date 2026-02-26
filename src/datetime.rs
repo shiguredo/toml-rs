@@ -191,18 +191,21 @@ impl fmt::Display for Datetime {
 }
 
 /// 入力からちょうど `n` 桁の数値を読み取る。
+/// ASCII 数字のみを扱うためバイト単位で処理し、マルチバイト文字でパニックしない。
 fn parse_n_digits(s: &str, n: usize) -> Result<(u32, &str), Error> {
-    if s.len() < n {
+    let bytes = s.as_bytes();
+    if bytes.len() < n {
         return Err(Error::validate(format!(
             "expected {n}-digit number but input is too short"
         )));
     }
-    let digits = &s[..n];
-    if !digits.bytes().all(|b| b.is_ascii_digit()) {
+    if !bytes[..n].iter().all(|b| b.is_ascii_digit()) {
         return Err(Error::validate(format!(
-            "expected {n}-digit number but found '{digits}'"
+            "expected {n}-digit number but found non-digit bytes"
         )));
     }
+    // ASCII 数字のみなので &s[..n] と &s[n..] は安全
+    let digits = &s[..n];
     let value = digits
         .parse::<u32>()
         .map_err(|e| Error::validate(format!("number conversion error: {e}")))?;

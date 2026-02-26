@@ -1093,16 +1093,20 @@ impl<'a> Parser<'a> {
 
     /// Unicode エスケープ `\uXXXX` または `\UXXXXXXXX` を解析する。
     fn parse_unicode_escape(&mut self, digit_count: usize) -> Result<char, Error> {
-        if self.rest.len() < digit_count {
+        let bytes = self.rest.as_bytes();
+        if bytes.len() < digit_count {
             return Err(self.error(format!(
                 "Unicode escape requires {digit_count} hex digits but input is too short"
             )));
         }
 
-        let hex_str = &self.rest[..digit_count];
-        if !hex_str.bytes().all(|b| b.is_ascii_hexdigit()) {
-            return Err(self.error(format!("invalid hex digits in Unicode escape: '{hex_str}'")));
+        // ASCII hex 文字のみを期待するためバイト単位でチェックする
+        if !bytes[..digit_count].iter().all(|b| b.is_ascii_hexdigit()) {
+            return Err(self.error("invalid hex digits in Unicode escape"));
         }
+
+        // ASCII hex 文字のみなのでスライスは安全
+        let hex_str = &self.rest[..digit_count];
 
         let code_point = u32::from_str_radix(hex_str, 16)
             .map_err(|e| self.error(format!("Unicode escape conversion error: {e}")))?;
