@@ -34,8 +34,10 @@ Rust で実装された依存 0 の TOML ライブラリです。TOML v1.0.0 と
 
 ### パース
 
+`from_str` は TOML v1.0.0 としてパースします。
+
 ```rust
-use shiguredo_toml::{from_str, Value};
+use shiguredo_toml::from_str;
 
 let table = from_str(r#"
 [server]
@@ -60,13 +62,18 @@ let servers = table["servers"].as_array().unwrap();
 assert_eq!(servers.len(), 2);
 ```
 
-### TOML v1.1.0 としてパース
+### バージョン指定でパース
+
+`from_str_with_version` で TOML バージョンを明示できます。
 
 ```rust
 use shiguredo_toml::{from_str_with_version, TomlVersion};
 
+// TOML v1.0.0 として解析する
+let table = from_str_with_version(input, TomlVersion::V1_0).unwrap();
+
+// TOML v1.1.0 として解析する（複数行インラインテーブル・末尾カンマ・\e エスケープ等が使用可能）
 let table = from_str_with_version(r#"
-# v1.1.0: インラインテーブルの複数行と末尾カンマ
 contact = {
     name = "Alice",
     email = "alice@example.com",
