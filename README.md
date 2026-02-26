@@ -70,9 +70,13 @@ assert_eq!(servers.len(), 2);
 use shiguredo_toml::{from_str_with_version, TomlVersion};
 
 // TOML v1.0.0 として解析する
-let table = from_str_with_version(input, TomlVersion::V1_0).unwrap();
+let table = from_str_with_version(r#"
+host = "localhost"
+port = 8080
+"#, TomlVersion::V1_0).unwrap();
 
-// TOML v1.1.0 として解析する（複数行インラインテーブル・末尾カンマ・\e エスケープ等が使用可能）
+// TOML v1.1.0 として解析する
+// 複数行インラインテーブル・末尾カンマ・\e エスケープ等が使用可能
 let table = from_str_with_version(r#"
 contact = {
     name = "Alice",
@@ -205,7 +209,7 @@ make toml-test-v1_1-ci
 補足:
 
 - 初回は `scripts/run_toml_test.sh` が `toml-test` を `.cache/toml-test` に clone します。
-- `TOML_TEST_UPDATE=1 make toml-test` で `toml-test` の更新を取り込みます。
+- `TOML_TEST_UPDATE=1 make toml-test-v1_0` / `TOML_TEST_UPDATE=1 make toml-test-v1_1` で `toml-test` の更新を取り込みます。
 - `go` コマンドが必要です。
 
 ## ライセンス
