@@ -166,7 +166,8 @@ impl Document {
     fn find_insert_position(&self, parent_path: &[PathSegment]) -> Result<usize, Error> {
         if parent_path.is_empty() {
             // ルートレベルへの挿入
-            return Ok(self.sections.root_end);
+            let pos = strip_trailing_blank_lines(&self.source, self.sections.root_end);
+            return Ok(pos);
         }
 
         // 親が存在するか確認する

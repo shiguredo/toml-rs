@@ -57,6 +57,15 @@ name = "beta"
 
         insta::assert_snapshot!(doc.as_str());
     }
+
+    #[test]
+    fn insert_root_key_with_trailing_blank_line() {
+        let input = "a = 1\n\n[server]\nport = 8080\n";
+        let mut doc = Document::parse(input).unwrap();
+        doc.set_path("b", Value::Integer(2)).unwrap();
+
+        insta::assert_snapshot!(doc.as_str());
+    }
 }
 
 mod edit_output {

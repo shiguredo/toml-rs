@@ -1,0 +1,9 @@
+---
+source: tests/snapshot_edit.rs
+expression: doc.as_str()
+---
+a = 1
+b = 2
+
+[server]
+port = 8080
