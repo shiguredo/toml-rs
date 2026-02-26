@@ -14,7 +14,8 @@ pub use datetime::{Date, Datetime, Offset, Time};
 pub use edit::Document;
 pub use error::Error;
 pub use span::{
-    CommentIndex, CommentSpan, PathSegment, SpanIndex, TextSpan, ValuePath, parse_value_path,
+    CommentIndex, CommentSpan, PathSegment, SectionIndex, SectionSpan, SpanIndex, TextSpan,
+    ValuePath, parse_value_path,
 };
 pub use value::{Array, Table, Value};
 

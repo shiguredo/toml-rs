@@ -3,7 +3,9 @@ use std::collections::{HashMap, HashSet};
 use crate::TomlVersion;
 use crate::datetime;
 use crate::error::Error;
-use crate::span::{CommentIndex, PathSegment, SpanIndex, TextSpan, ValuePath};
+use crate::span::{
+    CommentIndex, PathSegment, SectionIndex, SectionSpan, SpanIndex, TextSpan, ValuePath,
+};
 use crate::value::{Array, Table, Value};
 
 /// ネストの最大深さ。
@@ -46,6 +48,12 @@ struct Parser<'a> {
     comment_index: CommentIndex,
     /// 次に現れる行末コメントの紐づけ先
     pending_comment_target: Option<ValuePath>,
+    /// セクション範囲インデックス
+    section_index: SectionIndex,
+    /// 現在のセクションパス（None はルートセクション）
+    current_section_path: Option<ValuePath>,
+    /// 現在のセクション本文の開始バイト位置
+    current_section_body_start: usize,
     /// 現在のネスト深さ
     depth: usize,
     /// パース対象の TOML バージョン
@@ -54,14 +62,14 @@ struct Parser<'a> {
 
 /// TOML 文字列を解析して Table に変換する。
 pub(crate) fn parse(input: &str, version: TomlVersion) -> Result<Table, Error> {
-    parse_with_spans(input, version).map(|(table, _, _)| table)
+    parse_with_spans(input, version).map(|(table, _, _, _)| table)
 }
 
 /// TOML 文字列を解析して Table と位置情報に変換する。
 pub(crate) fn parse_with_spans(
     input: &str,
     version: TomlVersion,
-) -> Result<(Table, SpanIndex, CommentIndex), Error> {
+) -> Result<(Table, SpanIndex, CommentIndex, SectionIndex), Error> {
     let mut parser = Parser {
         input,
         rest: input,
@@ -74,11 +82,19 @@ pub(crate) fn parse_with_spans(
         span_index: SpanIndex::new(),
         comment_index: CommentIndex::new(),
         pending_comment_target: None,
+        section_index: SectionIndex::new(),
+        current_section_path: None,
+        current_section_body_start: 0,
         depth: 0,
         version,
     };
     parser.parse_document()?;
-    Ok((parser.root, parser.span_index, parser.comment_index))
+    Ok((
+        parser.root,
+        parser.span_index,
+        parser.comment_index,
+        parser.section_index,
+    ))
 }
 
 impl<'a> Parser<'a> {
@@ -236,6 +252,8 @@ impl<'a> Parser<'a> {
                     }
                 }
                 Some(b'[') => {
+                    // 前のセクションの body_end を確定する
+                    self.finalize_current_section();
                     self.parse_table_header()?;
                     self.skip_whitespace();
                     if self.peek() == Some(b'#') {
@@ -244,6 +262,8 @@ impl<'a> Parser<'a> {
                     if !self.at_eof() {
                         self.expect_newline_or_eof()?;
                     }
+                    // 新しいセクションの本文開始位置を記録する
+                    self.current_section_body_start = self.position();
                 }
                 Some(_) => {
                     self.parse_keyval()?;
@@ -258,7 +278,31 @@ impl<'a> Parser<'a> {
                 None => break,
             }
         }
+        // 最後のセクションの body_end を確定する
+        self.finalize_current_section();
         Ok(())
+    }
+
+    // ========== セクション範囲追跡 ==========
+
+    /// 現在のセクションの body_end を確定し、SectionIndex に登録する。
+    fn finalize_current_section(&mut self) {
+        let body_end = self.position();
+        match self.current_section_path.take() {
+            Some(path) => {
+                self.section_index.insert(
+                    path,
+                    SectionSpan {
+                        body_start: self.current_section_body_start,
+                        body_end,
+                    },
+                );
+            }
+            None => {
+                // ルートセクション
+                self.section_index.root_end = body_end;
+            }
+        }
     }
 
     // ========== テーブルヘッダ解析 ==========
@@ -284,6 +328,9 @@ impl<'a> Parser<'a> {
             self.expect(b']')?;
             self.handle_standard_table(path, header_pos)?;
         }
+
+        // 現在のセクションパスを設定する（配列テーブルの場合はインデックス付き）
+        self.current_section_path = Some(self.current_context_path());
 
         Ok(())
     }

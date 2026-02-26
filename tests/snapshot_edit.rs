@@ -1,5 +1,44 @@
 use shiguredo_toml::{Document, PathSegment, Value};
 
+mod insert_output {
+    use super::*;
+
+    #[test]
+    fn insert_keys_at_various_positions() {
+        let input = r#"
+title = "example"
+port = 8080 # keep
+
+[server]
+host = "localhost"
+
+[[items]]
+name = "alpha"
+[[items]]
+name = "beta"
+"#
+        .trim_start();
+
+        let mut doc = Document::parse(input).unwrap();
+        doc.set_path("version", Value::Integer(1)).unwrap();
+        doc.set_path("server.timeout", Value::Integer(30)).unwrap();
+        doc.set_path("items[1].priority", Value::Integer(5))
+            .unwrap();
+
+        insta::assert_snapshot!(doc.as_str());
+    }
+
+    #[test]
+    fn insert_into_inline_table() {
+        let input = "config = { debug = true }\n";
+        let mut doc = Document::parse(input).unwrap();
+        doc.set_path("config.verbose", Value::Boolean(false))
+            .unwrap();
+
+        insta::assert_snapshot!(doc.as_str());
+    }
+}
+
 mod edit_output {
     use super::*;
 

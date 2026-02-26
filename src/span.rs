@@ -16,6 +16,45 @@ impl TextSpan {
     }
 }
 
+/// テーブルセクション（ヘッダから次のヘッダの直前まで）のバイト範囲。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SectionSpan {
+    /// セクション本文の開始バイト位置（ヘッダ行の次の行の先頭）。
+    pub body_start: usize,
+    /// セクション本文の終了バイト位置（次のヘッダの直前、または EOF）。
+    pub body_end: usize,
+}
+
+/// セクション範囲のインデックス。
+#[derive(Debug, Clone, Default)]
+pub struct SectionIndex {
+    sections: HashMap<ValuePath, SectionSpan>,
+    /// ルートセクション（ヘッダなし部分）の終了バイト位置。
+    pub root_end: usize,
+}
+
+impl SectionIndex {
+    /// 空のインデックスを作成する。
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// セクション範囲を登録する。
+    pub(crate) fn insert(&mut self, path: ValuePath, span: SectionSpan) {
+        self.sections.insert(path, span);
+    }
+
+    /// パスに対応するセクション範囲を取得する。
+    pub fn get(&self, path: &[PathSegment]) -> Option<SectionSpan> {
+        self.sections.get(path).copied()
+    }
+
+    /// すべてのエントリを列挙する。
+    pub fn iter(&self) -> impl Iterator<Item = (&ValuePath, &SectionSpan)> {
+        self.sections.iter()
+    }
+}
+
 /// 値パスの 1 セグメント。
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum PathSegment {
