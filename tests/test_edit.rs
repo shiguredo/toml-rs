@@ -93,6 +93,17 @@ mod insert_value {
     }
 
     #[test]
+    fn insert_new_key_at_root_without_trailing_newline() {
+        let input = r#"env = "test""#;
+        let mut doc = Document::parse(input).unwrap();
+
+        doc.set_path("target", Value::String("value".to_owned()))
+            .unwrap();
+        assert_eq!(doc.get_path("target").unwrap().as_str().unwrap(), "value");
+        assert_eq!(doc.get_path("env").unwrap().as_str().unwrap(), "test");
+    }
+
+    #[test]
     fn insert_new_key_in_section() {
         let input = "[server]\nport = 8080\n";
         let mut doc = Document::parse(input).unwrap();
@@ -149,15 +160,6 @@ mod insert_value {
 
         doc.set_path("obj.x", Value::Boolean(true)).unwrap();
         assert!(doc.get_path("obj.x").unwrap().as_bool().unwrap());
-    }
-
-    #[test]
-    fn insert_with_missing_parent_returns_error() {
-        let input = "a = 1\n";
-        let mut doc = Document::parse(input).unwrap();
-
-        let result = doc.set_path("missing.key", Value::Integer(2));
-        assert!(result.is_err());
     }
 
     #[test]
@@ -287,5 +289,103 @@ mod comment_tracking {
         assert_eq!(comments.len(), 1);
         let span = comments[0].span;
         assert_eq!(&input[span.start..span.end], "# only comment");
+    }
+}
+
+mod insert_auto_create {
+    use super::*;
+
+    #[test]
+    fn creates_section_for_missing_parent() {
+        let input = "a = 1\n";
+        let mut doc = Document::parse(input).unwrap();
+
+        doc.set_path("new.key", Value::Integer(2)).unwrap();
+        assert_eq!(doc.get_path("new.key").unwrap().as_integer().unwrap(), 2);
+        assert_eq!(doc.get_path("a").unwrap().as_integer().unwrap(), 1);
+    }
+
+    #[test]
+    fn creates_section_in_existing_section() {
+        let input = "[server]\nport = 8080\n";
+        let mut doc = Document::parse(input).unwrap();
+
+        doc.set_path("server.db.host", Value::String("localhost".into()))
+            .unwrap();
+        assert_eq!(
+            doc.get_path("server.db.host").unwrap().as_str().unwrap(),
+            "localhost"
+        );
+        assert_eq!(
+            doc.get_path("server.port").unwrap().as_integer().unwrap(),
+            8080
+        );
+    }
+
+    #[test]
+    fn creates_deep_nested_section() {
+        let input = "";
+        let mut doc = Document::parse(input).unwrap();
+
+        doc.set_path("a.b.c.key", Value::Integer(42)).unwrap();
+        assert_eq!(doc.get_path("a.b.c.key").unwrap().as_integer().unwrap(), 42);
+    }
+
+    #[test]
+    fn subsequent_insert_into_auto_created_section() {
+        let input = "[server]\nport = 8080\n";
+        let mut doc = Document::parse(input).unwrap();
+
+        doc.set_path("server.db.host", Value::String("localhost".into()))
+            .unwrap();
+        doc.set_path("server.db.port", Value::Integer(5432))
+            .unwrap();
+        assert_eq!(
+            doc.get_path("server.db.host").unwrap().as_str().unwrap(),
+            "localhost"
+        );
+        assert_eq!(
+            doc.get_path("server.db.port")
+                .unwrap()
+                .as_integer()
+                .unwrap(),
+            5432
+        );
+    }
+
+    #[test]
+    fn auto_create_with_following_section() {
+        let input = "[a]\nx = 1\n\n[b]\ny = 2\n";
+        let mut doc = Document::parse(input).unwrap();
+
+        doc.set_path("a.sub.key", Value::Integer(99)).unwrap();
+        assert_eq!(doc.get_path("a.sub.key").unwrap().as_integer().unwrap(), 99);
+        assert_eq!(doc.get_path("b.y").unwrap().as_integer().unwrap(), 2);
+    }
+
+    #[test]
+    fn scalar_intermediate_returns_error() {
+        let input = "a = 1\n";
+        let mut doc = Document::parse(input).unwrap();
+
+        let result = doc.set_path("a.b.c", Value::Integer(2));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn array_index_in_missing_portion_returns_error() {
+        let input = "[server]\nport = 8080\n";
+        let mut doc = Document::parse(input).unwrap();
+
+        let result = doc.set(
+            &[
+                PathSegment::Key("server".into()),
+                PathSegment::Key("items".into()),
+                PathSegment::Index(0),
+                PathSegment::Key("name".into()),
+            ],
+            Value::String("x".into()),
+        );
+        assert!(result.is_err());
     }
 }

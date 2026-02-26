@@ -82,7 +82,7 @@ impl Document {
 
     /// 指定パスの値を置換、またはパスが存在しなければ新規挿入する。
     ///
-    /// 中間テーブルが存在しない場合はエラーを返す。
+    /// 中間テーブルが存在しない場合はセクションヘッダを自動生成する。
     /// 更新後に全体を再解析し、位置情報も更新する。
     pub fn set(&mut self, path: &[PathSegment], new_value: Value) -> Result<(), Error> {
         if let Some(span) = self.spans.get(path) {
@@ -145,6 +145,11 @@ impl Document {
             }
         }
 
+        // 親テーブルが存在しない場合はセクションヘッダを自動生成して挿入する
+        if !parent_path.is_empty() && value_at_path(&self.table, parent_path).is_none() {
+            return self.insert_with_new_section(path, new_value);
+        }
+
         // セクションテーブルまたはルートへの挿入
         let key = match last {
             PathSegment::Key(key) => key,
@@ -156,8 +161,15 @@ impl Document {
 
         let insert_pos = self.find_insert_position(parent_path)?;
 
+        // 挿入位置の直前が改行でない場合は改行を補う
+        let needs_newline = insert_pos > 0 && self.source.as_bytes()[insert_pos - 1] != b'\n';
+
         let mut next_source = self.source.clone();
-        next_source.insert_str(insert_pos, &insert_text);
+        if needs_newline {
+            next_source.insert_str(insert_pos, &format!("\n{insert_text}"));
+        } else {
+            next_source.insert_str(insert_pos, &insert_text);
+        }
 
         self.reparse(next_source)
     }
@@ -190,6 +202,95 @@ impl Document {
 
         Err(Error::serialize(
             "cannot determine insert position for the parent table",
+        ))
+    }
+
+    /// 親テーブルが存在しない場合にセクションヘッダを自動生成して挿入する。
+    fn insert_with_new_section(
+        &mut self,
+        path: &[PathSegment],
+        new_value: Value,
+    ) -> Result<(), Error> {
+        let last = match path.last() {
+            Some(PathSegment::Key(key)) => key,
+            _ => return Err(Error::serialize("leaf must be a key")),
+        };
+
+        let parent_path = &path[..path.len() - 1];
+
+        // 中間パスを検証する
+        self.validate_intermediate_path(parent_path)?;
+
+        // セクションヘッダを組み立てる
+        let header = format_section_header(parent_path);
+
+        // キー値行を組み立てる
+        let inline_value = crate::to_inline_string(&new_value)?;
+        let key_text = format_key(last);
+        let insert_text = format!("{header}\n{key_text} = {inline_value}\n");
+
+        // 最も近い既存セクションの末尾に挿入する
+        let insert_pos = self.find_ancestor_section_end(parent_path)?;
+
+        // 挿入位置の直前が改行でない場合は改行を補う
+        let needs_newline = insert_pos > 0 && self.source.as_bytes()[insert_pos - 1] != b'\n';
+
+        let mut next_source = self.source.clone();
+        if needs_newline {
+            next_source.insert_str(insert_pos, &format!("\n{insert_text}"));
+        } else {
+            next_source.insert_str(insert_pos, &insert_text);
+        }
+
+        self.reparse(next_source)
+    }
+
+    /// 自動作成パスの中間セグメントを検証する。
+    ///
+    /// - 既存値がテーブル以外（スカラー、配列）であればエラー
+    /// - 欠損部分に Index セグメントがあればエラー
+    fn validate_intermediate_path(&self, parent_path: &[PathSegment]) -> Result<(), Error> {
+        let mut found_missing = false;
+        for i in 0..parent_path.len() {
+            if found_missing {
+                // 欠損部分では Index セグメントを許可しない
+                if matches!(parent_path[i], PathSegment::Index(_)) {
+                    return Err(Error::serialize("cannot auto-create array elements"));
+                }
+                continue;
+            }
+            let partial = &parent_path[..=i];
+            match value_at_path(&self.table, partial) {
+                Some(v) if v.is_table() => {}
+                Some(_) => {
+                    return Err(Error::serialize("intermediate path is not a table"));
+                }
+                None => {
+                    if matches!(parent_path[i], PathSegment::Index(_)) {
+                        return Err(Error::serialize("cannot auto-create array elements"));
+                    }
+                    found_missing = true;
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// 親パスから逆順に辿り、最も近い既存セクションの body_end を返す。
+    /// セクションが見つからなければルート末尾を返す。
+    fn find_ancestor_section_end(&self, parent_path: &[PathSegment]) -> Result<usize, Error> {
+        for depth in (1..=parent_path.len()).rev() {
+            let candidate = &parent_path[..depth];
+            if let Some(section_span) = self.sections.get(candidate) {
+                return Ok(strip_trailing_blank_lines(
+                    &self.source,
+                    section_span.body_end,
+                ));
+            }
+        }
+        Ok(strip_trailing_blank_lines(
+            &self.source,
+            self.sections.root_end,
         ))
     }
 
@@ -298,6 +399,19 @@ fn format_key(key: &str) -> String {
     } else {
         key.to_owned()
     }
+}
+
+/// ValuePath からセクションヘッダ文字列を組み立てる。
+/// Index セグメントはスキップする（TOML の配列テーブル文脈で暗黙的に解決される）。
+fn format_section_header(path: &[PathSegment]) -> String {
+    let keys: Vec<String> = path
+        .iter()
+        .filter_map(|seg| match seg {
+            PathSegment::Key(k) => Some(format_key(k)),
+            PathSegment::Index(_) => None,
+        })
+        .collect();
+    format!("[{}]", keys.join("."))
 }
 
 /// セクション body_end から末尾の空行（空白のみの行を含む）を逆方向にスキップし、
