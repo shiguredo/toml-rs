@@ -415,7 +415,7 @@ dependencies = [
 
 [[package]]
 name = "shiguredo_toml"
-version = "2026.1.0-canary.3"
+version = "2026.1.0-canary.4"
 dependencies = [
  "insta",
 ]
