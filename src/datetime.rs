@@ -80,16 +80,19 @@ fn days_in_month(year: u16, month: u8) -> u8 {
 
 impl Date {
     /// 日付を検証する。
-    pub fn validate(&self) -> Result<(), String> {
+    pub fn validate(&self) -> Result<(), Error> {
         if self.month < 1 || self.month > 12 {
-            return Err(format!("month out of range: {}", self.month));
+            return Err(Error::validate(format!(
+                "month out of range: {}",
+                self.month
+            )));
         }
         let max_day = days_in_month(self.year, self.month);
         if self.day < 1 || self.day > max_day {
-            return Err(format!(
+            return Err(Error::validate(format!(
                 "day out of range: max {} for {}-{:02}, got {}",
                 max_day, self.year, self.month, self.day
-            ));
+            )));
         }
         Ok(())
     }
@@ -97,18 +100,27 @@ impl Date {
 
 impl Time {
     /// 時刻を検証する。
-    pub fn validate(&self) -> Result<(), String> {
+    pub fn validate(&self) -> Result<(), Error> {
         if self.hour > 23 {
-            return Err(format!("hour out of range: {}", self.hour));
+            return Err(Error::validate(format!("hour out of range: {}", self.hour)));
         }
         if self.minute > 59 {
-            return Err(format!("minute out of range: {}", self.minute));
+            return Err(Error::validate(format!(
+                "minute out of range: {}",
+                self.minute
+            )));
         }
         if self.second > 59 {
-            return Err(format!("second out of range: {}", self.second));
+            return Err(Error::validate(format!(
+                "second out of range: {}",
+                self.second
+            )));
         }
         if self.nanosecond > 999_999_999 {
-            return Err(format!("nanosecond out of range: {}", self.nanosecond));
+            return Err(Error::validate(format!(
+                "nanosecond out of range: {}",
+                self.nanosecond
+            )));
         }
         Ok(())
     }
@@ -116,12 +128,15 @@ impl Time {
 
 impl Offset {
     /// オフセットを検証する。
-    pub fn validate(&self) -> Result<(), String> {
+    pub fn validate(&self) -> Result<(), Error> {
         match self {
             Offset::Z => Ok(()),
             Offset::Custom { minutes } => {
                 if *minutes < -1439 || *minutes > 1439 {
-                    return Err(format!("offset out of range: {} minutes", minutes));
+                    return Err(Error::validate(format!(
+                        "offset out of range: {} minutes",
+                        minutes
+                    )));
                 }
                 Ok(())
             }
@@ -176,29 +191,36 @@ impl fmt::Display for Datetime {
 }
 
 /// 入力からちょうど `n` 桁の数値を読み取る。
-fn parse_n_digits(s: &str, n: usize) -> Result<(u32, &str), String> {
+fn parse_n_digits(s: &str, n: usize) -> Result<(u32, &str), Error> {
     if s.len() < n {
-        return Err(format!("expected {n}-digit number but input is too short"));
+        return Err(Error::validate(format!(
+            "expected {n}-digit number but input is too short"
+        )));
     }
     let digits = &s[..n];
     if !digits.bytes().all(|b| b.is_ascii_digit()) {
-        return Err(format!("expected {n}-digit number but found '{digits}'"));
+        return Err(Error::validate(format!(
+            "expected {n}-digit number but found '{digits}'"
+        )));
     }
     let value = digits
         .parse::<u32>()
-        .map_err(|e| format!("number conversion error: {e}"))?;
+        .map_err(|e| Error::validate(format!("number conversion error: {e}")))?;
     Ok((value, &s[n..]))
 }
 
 /// 入力の先頭が指定バイトかチェックし、消費する。
-fn expect_byte(s: &str, expected: u8) -> Result<&str, String> {
+fn expect_byte(s: &str, expected: u8) -> Result<&str, Error> {
     match s.as_bytes().first() {
         Some(&b) if b == expected => Ok(&s[1..]),
-        Some(&b) => Err(format!(
+        Some(&b) => Err(Error::validate(format!(
             "expected '{}' but found '{}'",
             expected as char, b as char
-        )),
-        None => Err(format!("expected '{}' but input ended", expected as char)),
+        ))),
+        None => Err(Error::validate(format!(
+            "expected '{}' but input ended",
+            expected as char
+        ))),
     }
 }
 
@@ -206,12 +228,12 @@ impl FromStr for Datetime {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        parse_datetime_str(s).map_err(|msg| Error::parse(0, msg))
+        parse_datetime_str(s)
     }
 }
 
 /// 日時文字列を解析する。内部ヘルパー。TOML v1.0.0 として解析する。
-pub(crate) fn parse_datetime_str(s: &str) -> Result<Datetime, String> {
+pub(crate) fn parse_datetime_str(s: &str) -> Result<Datetime, Error> {
     parse_datetime_str_with_version(s, crate::TomlVersion::V1_0)
 }
 
@@ -219,7 +241,7 @@ pub(crate) fn parse_datetime_str(s: &str) -> Result<Datetime, String> {
 pub(crate) fn parse_datetime_str_with_version(
     s: &str,
     version: crate::TomlVersion,
-) -> Result<Datetime, String> {
+) -> Result<Datetime, Error> {
     // 時刻のみ (HH:MM[:SS]...)
     if s.len() >= 2
         && s.as_bytes()[0].is_ascii_digit()
@@ -232,7 +254,9 @@ pub(crate) fn parse_datetime_str_with_version(
         } else {
             let (time, rest) = parse_time_part_with_version(s, version)?;
             if !rest.is_empty() {
-                return Err(format!("unexpected characters after time: '{rest}'"));
+                return Err(Error::validate(format!(
+                    "unexpected characters after time: '{rest}'"
+                )));
             }
             return Ok(Datetime {
                 date: None,
@@ -259,10 +283,10 @@ pub(crate) fn parse_datetime_str_with_version(
         Some(&b'T') | Some(&b't') => &rest[1..],
         Some(&b' ') => &rest[1..],
         Some(&b) => {
-            return Err(format!(
+            return Err(Error::validate(format!(
                 "expected 'T' or space after date but found '{}'",
                 b as char
-            ));
+            )));
         }
         None => unreachable!(),
     };
@@ -284,7 +308,9 @@ pub(crate) fn parse_datetime_str_with_version(
     };
 
     if !rest.is_empty() {
-        return Err(format!("unexpected characters after datetime: '{rest}'"));
+        return Err(Error::validate(format!(
+            "unexpected characters after datetime: '{rest}'"
+        )));
     }
 
     Ok(Datetime {
@@ -294,7 +320,7 @@ pub(crate) fn parse_datetime_str_with_version(
     })
 }
 
-fn parse_date_part(s: &str) -> Result<(Date, &str), String> {
+fn parse_date_part(s: &str) -> Result<(Date, &str), Error> {
     let (year, rest) = parse_n_digits(s, 4)?;
     let rest = expect_byte(rest, b'-')?;
     let (month, rest) = parse_n_digits(rest, 2)?;
@@ -314,7 +340,7 @@ fn parse_date_part(s: &str) -> Result<(Date, &str), String> {
 fn parse_time_part_with_version(
     s: &str,
     version: crate::TomlVersion,
-) -> Result<(Time, &str), String> {
+) -> Result<(Time, &str), Error> {
     let (hour, rest) = parse_n_digits(s, 2)?;
     let rest = expect_byte(rest, b':')?;
     let (minute, rest) = parse_n_digits(rest, 2)?;
@@ -332,7 +358,9 @@ fn parse_time_part_with_version(
         // 小数秒部分: 1 桁以上必要
         let digit_count = rest.bytes().take_while(|b| b.is_ascii_digit()).count();
         if digit_count == 0 {
-            return Err("fractional seconds require at least one digit".into());
+            return Err(Error::validate(
+                "fractional seconds require at least one digit",
+            ));
         }
         let digits = &rest[..digit_count];
         // 9 桁にパディングまたは切り捨て
@@ -343,12 +371,12 @@ fn parse_time_part_with_version(
             }
             padded
                 .parse::<u32>()
-                .map_err(|e| format!("nanosecond conversion error: {e}"))?
+                .map_err(|e| Error::validate(format!("nanosecond conversion error: {e}")))?
         } else {
             // 9 桁を超える場合は切り捨て（四捨五入禁止）
             rest[..9]
                 .parse::<u32>()
-                .map_err(|e| format!("nanosecond conversion error: {e}"))?
+                .map_err(|e| Error::validate(format!("nanosecond conversion error: {e}")))?
         };
         (nanosecond, &rest[digit_count..])
     } else {
@@ -366,7 +394,7 @@ fn parse_time_part_with_version(
     Ok((time, rest))
 }
 
-fn parse_offset_part(s: &str) -> Result<(Offset, &str), String> {
+fn parse_offset_part(s: &str) -> Result<(Offset, &str), Error> {
     let sign = s.as_bytes()[0];
     let rest = &s[1..];
     let (hours, rest) = parse_n_digits(rest, 2)?;
@@ -374,7 +402,9 @@ fn parse_offset_part(s: &str) -> Result<(Offset, &str), String> {
     let (minutes, rest) = parse_n_digits(rest, 2)?;
 
     if minutes > 59 {
-        return Err(format!("offset minutes out of range: {minutes}"));
+        return Err(Error::validate(format!(
+            "offset minutes out of range: {minutes}"
+        )));
     }
 
     let total_minutes = (hours * 60 + minutes) as i16;

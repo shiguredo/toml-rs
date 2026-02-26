@@ -1403,7 +1403,7 @@ impl<'a> Parser<'a> {
 
         let datetime_str = &start[..len];
         let dt = datetime::parse_datetime_str_with_version(datetime_str, self.version)
-            .map_err(|msg| Error::parse(start_pos, msg))?;
+            .map_err(|e| Error::parse(start_pos, e.to_string()))?;
 
         self.advance_bytes(len);
         Ok(Value::Datetime(dt))

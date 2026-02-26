@@ -16,6 +16,11 @@ pub enum Error {
         /// エラーメッセージ
         message: String,
     },
+    /// バリデーションエラー
+    Validate {
+        /// エラーメッセージ
+        message: String,
+    },
 }
 
 impl Error {
@@ -23,7 +28,7 @@ impl Error {
     pub fn position(&self) -> Option<usize> {
         match self {
             Error::Parse { position, .. } => Some(*position),
-            Error::Serialize { .. } => None,
+            Error::Serialize { .. } | Error::Validate { .. } => None,
         }
     }
 
@@ -77,6 +82,12 @@ impl Error {
             message: message.into(),
         }
     }
+
+    pub(crate) fn validate(message: impl Into<String>) -> Self {
+        Error::Validate {
+            message: message.into(),
+        }
+    }
 }
 
 impl fmt::Display for Error {
@@ -87,6 +98,9 @@ impl fmt::Display for Error {
             }
             Error::Serialize { message } => {
                 write!(f, "serialize error: {message}")
+            }
+            Error::Validate { message } => {
+                write!(f, "validation error: {message}")
             }
         }
     }

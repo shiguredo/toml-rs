@@ -105,8 +105,7 @@ impl Document {
 
     /// 文字列パスで指定した値を置換、またはパスが存在しなければ新規挿入する。
     pub fn set_path(&mut self, path: &str, new_value: Value) -> Result<(), Error> {
-        let parsed = parse_value_path(path)
-            .map_err(|msg| Error::serialize(format!("failed to parse value path: {msg}")))?;
+        let parsed = parse_value_path(path)?;
         self.set(&parsed, new_value)
     }
 

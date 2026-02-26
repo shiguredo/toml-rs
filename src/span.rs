@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use crate::Error;
+
 /// 値が元テキスト上に存在していたバイト範囲。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TextSpan {
@@ -137,9 +139,9 @@ impl CommentIndex {
 /// 文字列パスを `ValuePath` に変換する。
 ///
 /// 例: `servers[1].port`
-pub fn parse_value_path(path: &str) -> Result<ValuePath, String> {
+pub fn parse_value_path(path: &str) -> Result<ValuePath, Error> {
     if path.is_empty() {
-        return Err("value path is empty".to_owned());
+        return Err(Error::validate("value path is empty"));
     }
 
     let bytes = path.as_bytes();
@@ -148,7 +150,7 @@ pub fn parse_value_path(path: &str) -> Result<ValuePath, String> {
 
     while i < bytes.len() {
         if bytes[i] == b'.' {
-            return Err("value path contains empty key".to_owned());
+            return Err(Error::validate("value path contains empty key"));
         }
 
         if bytes[i] == b'[' {
@@ -161,7 +163,7 @@ pub fn parse_value_path(path: &str) -> Result<ValuePath, String> {
                 i += 1;
             }
             if start == i {
-                return Err("value path key is empty".to_owned());
+                return Err(Error::validate("value path key is empty"));
             }
             segments.push(PathSegment::Key(path[start..i].to_owned()));
         }
@@ -174,11 +176,14 @@ pub fn parse_value_path(path: &str) -> Result<ValuePath, String> {
 
         if i < bytes.len() {
             if bytes[i] != b'.' {
-                return Err(format!("invalid value path syntax: '{}'", path));
+                return Err(Error::validate(format!(
+                    "invalid value path syntax: '{}'",
+                    path
+                )));
             }
             i += 1;
             if i >= bytes.len() {
-                return Err("value path ends with '.'".to_owned());
+                return Err(Error::validate("value path ends with '.'"));
             }
         }
     }
@@ -186,10 +191,10 @@ pub fn parse_value_path(path: &str) -> Result<ValuePath, String> {
     Ok(segments)
 }
 
-fn parse_index(path: &str, start: usize) -> Result<(usize, usize), String> {
+fn parse_index(path: &str, start: usize) -> Result<(usize, usize), Error> {
     let bytes = path.as_bytes();
     if bytes.get(start) != Some(&b'[') {
-        return Err("invalid array index start".to_owned());
+        return Err(Error::validate("invalid array index start"));
     }
 
     let mut i = start + 1;
@@ -198,14 +203,14 @@ fn parse_index(path: &str, start: usize) -> Result<(usize, usize), String> {
         i += 1;
     }
     if num_start == i {
-        return Err("array index is empty".to_owned());
+        return Err(Error::validate("array index is empty"));
     }
     if bytes.get(i) != Some(&b']') {
-        return Err("array index missing closing ']'".to_owned());
+        return Err(Error::validate("array index missing closing ']'"));
     }
 
     let index = path[num_start..i]
         .parse::<usize>()
-        .map_err(|e| format!("array index conversion error: {e}"))?;
+        .map_err(|e| Error::validate(format!("array index conversion error: {e}")))?;
     Ok((index, i + 1))
 }
