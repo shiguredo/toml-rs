@@ -1,0 +1,12 @@
+---
+source: tests/snapshot_parser.rs
+expression: table
+---
+{
+    "ml_basic": String(
+        "hello\nworld",
+    ),
+    "ml_literal": String(
+        "hello\nworld",
+    ),
+}

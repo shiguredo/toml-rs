@@ -1,0 +1,20 @@
+---
+source: tests/snapshot_parser.rs
+expression: table
+---
+{
+    "a": Table(
+        {
+            "b": Table(
+                {
+                    "c": Integer(
+                        1,
+                    ),
+                },
+            ),
+            "d": Integer(
+                2,
+            ),
+        },
+    ),
+}

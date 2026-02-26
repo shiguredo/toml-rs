@@ -1,0 +1,9 @@
+---
+source: tests/snapshot_serializer.rs
+expression: s
+---
+[a]
+x = 1
+
+[b]
+y = 2

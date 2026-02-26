@@ -1,0 +1,9 @@
+---
+source: tests/snapshot_serializer.rs
+expression: s
+---
+local_date = 2024-01-15
+local_datetime = 2024-01-15T10:30:00
+local_time = 10:30:45.123
+offset_datetime = 2024-01-15T10:30:00+09:00
+utc_datetime = 2024-01-15T10:30:00Z

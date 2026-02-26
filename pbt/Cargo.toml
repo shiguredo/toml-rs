@@ -1,0 +1,9 @@
+[package]
+name = "pbt"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+shiguredo_toml = { path = "../" }
+proptest = "1.9.0"

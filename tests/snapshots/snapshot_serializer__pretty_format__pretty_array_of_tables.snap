@@ -1,0 +1,9 @@
+---
+source: tests/snapshot_serializer.rs
+expression: s
+---
+[[items]]
+a = 1
+
+[[items]]
+a = 2

@@ -1,0 +1,8 @@
+---
+source: tests/snapshot_serializer.rs
+expression: s
+---
+a = 1
+b = 2
+[sub]
+c = 3

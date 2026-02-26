@@ -1,0 +1,10 @@
+---
+source: tests/snapshot_serializer.rs
+expression: s
+---
+"" = 1
+"hello world" = 2
+"key=val" = 3
+normal = 4
+with-dash = 5
+with_underscore = 6

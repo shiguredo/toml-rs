@@ -1,0 +1,27 @@
+---
+source: tests/snapshot_parser.rs
+expression: table
+---
+{
+    "bin": Integer(
+        13,
+    ),
+    "dec": Integer(
+        1000,
+    ),
+    "hex": Integer(
+        57005,
+    ),
+    "negative": Integer(
+        -17,
+    ),
+    "oct": Integer(
+        493,
+    ),
+    "positive": Integer(
+        99,
+    ),
+    "zero": Integer(
+        0,
+    ),
+}

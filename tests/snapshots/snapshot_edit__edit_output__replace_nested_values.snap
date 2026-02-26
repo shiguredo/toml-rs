@@ -1,0 +1,12 @@
+---
+source: tests/snapshot_edit.rs
+expression: doc.as_str()
+---
+title = "example"
+port = 9090 # keep
+arr = [1, { nested = false }]
+
+[[servers]]
+name = "alpha" # first
+[[servers]]
+name = "gamma" # second

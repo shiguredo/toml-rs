@@ -1,0 +1,5 @@
+---
+source: tests/snapshot_edit.rs
+expression: doc.as_str()
+---
+config = { debug = true, verbose = false }

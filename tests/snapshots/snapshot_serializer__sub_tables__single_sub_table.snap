@@ -1,0 +1,7 @@
+---
+source: tests/snapshot_serializer.rs
+expression: s
+---
+[server]
+host = "localhost"
+port = 8080

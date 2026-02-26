@@ -1,0 +1,97 @@
+---
+source: tests/snapshot_parser.rs
+expression: table
+---
+{
+    "database": Table(
+        {
+            "data": Array(
+                [
+                    Array(
+                        [
+                            String(
+                                "delta",
+                            ),
+                            String(
+                                "phi",
+                            ),
+                        ],
+                    ),
+                    Array(
+                        [
+                            Float(
+                                3.14,
+                            ),
+                        ],
+                    ),
+                ],
+            ),
+            "enabled": Boolean(
+                true,
+            ),
+            "ports": Array(
+                [
+                    Integer(
+                        8000,
+                    ),
+                    Integer(
+                        8001,
+                    ),
+                    Integer(
+                        8002,
+                    ),
+                ],
+            ),
+            "temp_targets": Table(
+                {
+                    "case": Float(
+                        72.0,
+                    ),
+                    "cpu": Float(
+                        79.5,
+                    ),
+                },
+            ),
+        },
+    ),
+    "owner": Table(
+        {
+            "name": String(
+                "Tom Preston-Werner",
+            ),
+        },
+    ),
+    "servers": Array(
+        [
+            Table(
+                {
+                    "ip": String(
+                        "10.0.0.1",
+                    ),
+                    "name": String(
+                        "alpha",
+                    ),
+                    "role": String(
+                        "frontend",
+                    ),
+                },
+            ),
+            Table(
+                {
+                    "ip": String(
+                        "10.0.0.2",
+                    ),
+                    "name": String(
+                        "beta",
+                    ),
+                    "role": String(
+                        "backend",
+                    ),
+                },
+            ),
+        ],
+    ),
+    "title": String(
+        "TOML Example",
+    ),
+}

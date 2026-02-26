@@ -1,0 +1,9 @@
+---
+source: tests/snapshot_serializer.rs
+expression: s
+---
+bool_val = true
+dt_val = 1979-05-27T07:32:00Z
+float_val = 3.15
+int_val = 42
+str_val = "hello"

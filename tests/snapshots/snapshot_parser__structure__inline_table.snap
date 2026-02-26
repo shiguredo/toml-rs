@@ -1,0 +1,27 @@
+---
+source: tests/snapshot_parser.rs
+expression: table
+---
+{
+    "animal": Table(
+        {
+            "type": Table(
+                {
+                    "name": String(
+                        "pug",
+                    ),
+                },
+            ),
+        },
+    ),
+    "point": Table(
+        {
+            "x": Integer(
+                1,
+            ),
+            "y": Integer(
+                2,
+            ),
+        },
+    ),
+}

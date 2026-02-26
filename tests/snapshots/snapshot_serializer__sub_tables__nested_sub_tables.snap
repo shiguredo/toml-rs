@@ -1,0 +1,8 @@
+---
+source: tests/snapshot_serializer.rs
+expression: s
+---
+[server]
+host = "localhost"
+[server.tls]
+enabled = true

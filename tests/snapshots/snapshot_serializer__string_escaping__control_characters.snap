@@ -1,0 +1,8 @@
+---
+source: tests/snapshot_serializer.rs
+expression: s
+---
+backspace = "a\bb"
+cr = "a\rb"
+formfeed = "a\fb"
+null = "a\u0000b"

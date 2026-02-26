@@ -1,0 +1,17 @@
+---
+source: tests/snapshot_edit.rs
+expression: doc.as_str()
+---
+title = "example"
+port = 8080 # keep
+version = 1
+
+[server]
+host = "localhost"
+timeout = 30
+
+[[items]]
+name = "alpha"
+[[items]]
+name = "beta"
+priority = 5

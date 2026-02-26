@@ -1,0 +1,8 @@
+---
+source: tests/snapshot_serializer.rs
+expression: s
+---
+backslash = "a\\b"
+newline = "a\nb"
+quotes = "say \"hi\""
+tab = "a\tb"

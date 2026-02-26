@@ -1,0 +1,12 @@
+---
+source: tests/snapshot_parser.rs
+expression: table
+---
+{
+    "key": String(
+        "value",
+    ),
+    "other": Integer(
+        42,
+    ),
+}

@@ -1,0 +1,6 @@
+---
+source: tests/snapshot_serializer.rs
+expression: s
+---
+["has space"]
+key = 1
