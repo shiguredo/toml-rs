@@ -11,6 +11,13 @@
 
 ## develop
 
+- [CHANGE] `no_std` に対応する
+  - `alloc` クレートが必要
+  - `HashMap` / `HashSet` を `BTreeMap` / `BTreeSet` に置き換える
+  - `std::error::Error` を `core::error::Error` に置き換える
+  - `PathSegment` に `PartialOrd`, `Ord` を追加する
+  - @voluntas
+
 ## 2026.1.0
 
 **リリース日**: 2026-02-26

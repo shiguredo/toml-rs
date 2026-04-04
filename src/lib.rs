@@ -1,6 +1,14 @@
 //! TOML v1.0.0 / v1.1.0 ライブラリ。
 //!
 //! 外部依存なしで TOML v1.0.0 および v1.1.0 仕様に完全準拠するパーサとシリアライザを提供する。
+//!
+//! `no_std` 環境向け。ヒープ割り当てのため `alloc` が必要。
+
+#![no_std]
+
+extern crate alloc;
+
+use alloc::string::String;
 
 mod datetime;
 mod edit;
