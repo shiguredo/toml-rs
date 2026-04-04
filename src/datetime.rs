@@ -1,5 +1,7 @@
-use std::fmt;
-use std::str::FromStr;
+use alloc::format;
+use alloc::string::String;
+use core::fmt;
+use core::str::FromStr;
 
 use crate::Error;
 
