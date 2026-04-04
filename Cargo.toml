@@ -17,5 +17,5 @@ include = ["/src/**", "/LICENSE", "/README.md"]
 insta = "1"
 
 [workspace]
-members = ["pbt"]
+members = ["pbt", "crates/c-api", "crates/wasm"]
 exclude = ["fuzz", "tools/toml-test-adapter"]
