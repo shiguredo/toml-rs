@@ -1,5 +1,6 @@
-use std::fmt;
-use std::num::NonZeroUsize;
+use alloc::string::String;
+use core::fmt;
+use core::num::NonZeroUsize;
 
 /// TOML の解析・直列化エラー。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -106,4 +107,4 @@ impl fmt::Display for Error {
     }
 }
 
-impl std::error::Error for Error {}
+impl core::error::Error for Error {}

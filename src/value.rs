@@ -1,7 +1,10 @@
-use std::collections::BTreeMap;
-use std::fmt;
-use std::ops::Index;
-use std::str::FromStr;
+use alloc::borrow::ToOwned;
+use alloc::collections::BTreeMap;
+use alloc::string::String;
+use alloc::vec::Vec;
+use core::fmt;
+use core::ops::Index;
+use core::str::FromStr;
 
 use crate::Error;
 use crate::datetime::Datetime;
