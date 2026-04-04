@@ -76,7 +76,7 @@ dependencies = [
 
 [[package]]
 name = "shiguredo_toml"
-version = "2026.1.0-canary.6"
+version = "2026.1.0"
 
 [[package]]
 name = "syn"
