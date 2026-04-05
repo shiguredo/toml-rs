@@ -17,19 +17,22 @@ Please read <https://github.com/shiguredo/oss> before use.
 
 ## 概要
 
-Rust で実装された依存 0 の TOML ライブラリです。TOML v1.0.0 と v1.1.0 の両方に対応しています。
+Rust で実装された依存 0 かつ Sans I/O な TOML ライブラリです。TOML v1.0.0 と v1.1.0 の両方に対応しています。
 
 ## 特徴
 
+- Sans I/O
+  - <https://sans-io.readthedocs.io/index.html>
+- 依存ライブラリ 0
+- `no_std` 対応
+  - <https://docs.rust-embedded.org/book/intro/no-std.html>
 - TOML v1.0.0 / v1.1.0 仕様に完全準拠
 - TOML 公式テストスイート [toml-test](https://github.com/toml-lang/toml-test) 全件パス
-- 依存ライブラリ 0
 - パーサとシリアライザを提供
 - 整形済み出力 (pretty print) 対応
 - 値の位置情報 (バイト範囲) を保持
 - コメントの位置情報を保持し、値との紐づけを提供
 - 位置情報を活用した非破壊編集
-- `no_std` 対応
 
 ## 使い方
 
@@ -216,7 +219,6 @@ port = 8080
 - `doc.trailing_comment_span_path("port")`: 行末コメントの `TextSpan` を取得
 - `doc.comments()`: 収集済みコメントの一覧を取得
 - `doc.spans()`: すべての値の位置情報インデックスを取得
-
 
 ## 対応する TOML の型
 
