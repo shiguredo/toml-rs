@@ -18,6 +18,11 @@
   - `PathSegment` に `PartialOrd`, `Ord` を追加する
   - @voluntas
 
+### misc
+
+- clippy `collapsible_match` 警告を解消する
+  - @voluntas
+
 ## 2026.1.0
 
 **リリース日**: 2026-02-26

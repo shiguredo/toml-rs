@@ -475,17 +475,18 @@ impl<'a> Parser<'a> {
 
             if is_last {
                 match self.table_states.get(&prefix_path) {
-                    Some(TableState::Explicit | TableState::Dotted | TableState::Implicit) => {
-                        if !self.array_table_paths.contains(&prefix_path) {
-                            return Err(Error::parse(
-                                header_pos,
-                                format!(
-                                    "'{}' is defined as a standard table and cannot be an array table",
-                                    path_to_string(&path)
-                                ),
-                            ));
-                        }
+                    Some(TableState::Explicit | TableState::Dotted | TableState::Implicit)
+                        if !self.array_table_paths.contains(&prefix_path) =>
+                    {
+                        return Err(Error::parse(
+                            header_pos,
+                            format!(
+                                "'{}' is defined as a standard table and cannot be an array table",
+                                path_to_string(&path)
+                            ),
+                        ));
                     }
+                    Some(TableState::Explicit | TableState::Dotted | TableState::Implicit) => {}
                     Some(TableState::Inline) => {
                         return Err(Error::parse(
                             header_pos,
