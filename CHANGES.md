@@ -17,6 +17,9 @@
   - `std::error::Error` を `core::error::Error` に置き換える
   - `PathSegment` に `PartialOrd`, `Ord` を追加する
   - @voluntas
+- [FIX] 入力先頭の UTF-8 BOM (U+FEFF) を読み飛ばす
+  - toml-test の `valid/utf8-bom-01`, `valid/utf8-bom-02` に対応する
+  - @voluntas
 
 ### misc
 

@@ -75,9 +75,14 @@ pub(crate) fn parse_with_spans(
     input: &str,
     version: TomlVersion,
 ) -> Result<(Table, SpanIndex, CommentIndex, SectionIndex), Error> {
+    // 入力先頭の UTF-8 BOM (U+FEFF) は読み飛ばす。
+    // TOML 1.0.0 仕様には BOM の扱いの記載がないが、toml-test の
+    // valid/utf8-bom-01, valid/utf8-bom-02 で valid 扱いされているため許容する。
+    // input は元のまま保持して position() のオフセットを元入力基準に保つ。
+    let rest = input.strip_prefix('\u{FEFF}').unwrap_or(input);
     let mut parser = Parser {
         input,
-        rest: input,
+        rest,
         root: Table::new(),
         current_path: Vec::new(),
         table_states: BTreeMap::new(),

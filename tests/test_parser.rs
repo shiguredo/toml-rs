@@ -570,3 +570,51 @@ mod v1_1 {
         assert_eq!(t["a"].as_str().unwrap(), "hello\r\nworld\n");
     }
 }
+
+mod bom {
+    /// 先頭 BOM の直後に改行がある場合にパース成功する。
+    /// toml-test の valid/utf8-bom-01 相当。
+    #[test]
+    fn leading_bom_then_newline_and_comment() {
+        let input = "\u{FEFF}# comment\na = 1\n";
+        let t = shiguredo_toml::from_str(input).unwrap();
+        assert_eq!(t["a"].as_integer().unwrap(), 1);
+    }
+
+    /// 先頭 BOM の直後にキー=値が続く場合にパース成功する。
+    /// toml-test の valid/utf8-bom-02 相当。
+    #[test]
+    fn leading_bom_then_keyval_and_comment() {
+        let input = "\u{FEFF}a=1# comment\n";
+        let t = shiguredo_toml::from_str(input).unwrap();
+        assert_eq!(t["a"].as_integer().unwrap(), 1);
+    }
+
+    /// 先頭 BOM のみで内容が空の場合にパース成功する。
+    #[test]
+    fn only_bom() {
+        let t = shiguredo_toml::from_str("\u{FEFF}").unwrap();
+        assert!(t.is_empty());
+    }
+
+    /// 先頭 BOM が連続する場合は 2 個目以降が無効文字としてエラーになる。
+    #[test]
+    fn double_bom_is_error() {
+        let result = shiguredo_toml::from_str("\u{FEFF}\u{FEFF}a = 1");
+        assert!(result.is_err());
+    }
+
+    /// 中間 (キーの前など) に BOM が出現する場合はエラーになる。
+    #[test]
+    fn bom_in_middle_is_error() {
+        let result = shiguredo_toml::from_str("a = 1\n\u{FEFF}b = 2");
+        assert!(result.is_err());
+    }
+
+    /// 値の中に BOM が出現する場合はエラーになる（ベア値として解釈不可）。
+    #[test]
+    fn bom_in_value_is_error() {
+        let result = shiguredo_toml::from_str("a = \u{FEFF}1");
+        assert!(result.is_err());
+    }
+}
