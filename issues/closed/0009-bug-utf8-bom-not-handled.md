@@ -1,6 +1,7 @@
 # UTF-8 BOM が valid 入力として受け入れられない
 
 Created: 2026-05-08
+Completed: 2026-05-08
 Model: Opus 4.7
 
 ## 概要
@@ -37,3 +38,25 @@ printf '\xEF\xBB\xBFa=1\n' \
 - `src/parser.rs` の `parse_with_spans`（パーサ初期化部）
 - BOM 受け入れと BOM 非先頭時のエラーに関するテスト追加
 - `CHANGES.md` に `[FIX]` エントリ追加
+
+## 解決方法
+
+`src/parser.rs::parse_with_spans` で `Parser` を初期化する際、`rest` のみ
+`str::strip_prefix('\u{FEFF}')` で先頭 BOM を剥がすようにした。`input` は
+元のまま保持しているため、`position()` の値（= `input.len() - rest.len()`）
+や `SpanIndex` / `CommentIndex` / `SectionIndex` のオフセットは元入力基準で
+一貫し、エラー位置や span の整合性も保たれる。
+
+BOM の許容は先頭の 1 個のみ。2 個目以降や中間に出現した BOM は従来どおり
+パースエラーになる。
+
+- 修正: `src/parser.rs` の `parse_with_spans` 入口に BOM スキップを追加
+- テスト: `tests/test_parser.rs` の `mod bom` に valid/invalid 6 ケースを追加
+  - 先頭 BOM + 改行 + コメント (valid/utf8-bom-01 相当)
+  - 先頭 BOM + キー=値 + 行末コメント (valid/utf8-bom-02 相当)
+  - BOM のみで内容空
+  - BOM 連続はエラー
+  - 中間 BOM はエラー
+  - 値中の BOM はエラー
+- toml-test (TOML 1.0): valid 209/209, encoder 209/209, invalid 493/493
+- toml-test (TOML 1.1): valid 218/218, encoder 218/218, invalid 486/486
