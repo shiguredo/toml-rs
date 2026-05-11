@@ -1,3 +1,9 @@
+use alloc::borrow::ToOwned;
+use alloc::format;
+use alloc::string::String;
+use alloc::vec::Vec;
+use core::str::FromStr;
+
 use crate::TomlVersion;
 use crate::error::Error;
 use crate::parser;
@@ -344,7 +350,7 @@ impl Document {
     }
 }
 
-impl std::str::FromStr for Document {
+impl FromStr for Document {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {

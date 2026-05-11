@@ -1,4 +1,8 @@
-use std::collections::HashMap;
+use alloc::borrow::ToOwned;
+use alloc::collections::BTreeMap;
+use alloc::format;
+use alloc::string::String;
+use alloc::vec::Vec;
 
 use crate::Error;
 
@@ -30,7 +34,7 @@ pub struct SectionSpan {
 /// セクション範囲のインデックス。
 #[derive(Debug, Clone, Default)]
 pub struct SectionIndex {
-    sections: HashMap<ValuePath, SectionSpan>,
+    sections: BTreeMap<ValuePath, SectionSpan>,
     /// ルートセクション（ヘッダなし部分）の終了バイト位置。
     pub(crate) root_end: usize,
 }
@@ -63,7 +67,7 @@ impl SectionIndex {
 }
 
 /// 値パスの 1 セグメント。
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum PathSegment {
     /// テーブルキー。
     Key(String),
@@ -77,7 +81,7 @@ pub type ValuePath = Vec<PathSegment>;
 /// 値パスとテキスト範囲のインデックス。
 #[derive(Debug, Clone, Default)]
 pub struct SpanIndex {
-    spans: HashMap<ValuePath, TextSpan>,
+    spans: BTreeMap<ValuePath, TextSpan>,
 }
 
 impl SpanIndex {
@@ -114,7 +118,7 @@ pub struct CommentSpan {
 #[derive(Debug, Clone, Default)]
 pub struct CommentIndex {
     comments: Vec<CommentSpan>,
-    trailing_comments: HashMap<ValuePath, TextSpan>,
+    trailing_comments: BTreeMap<ValuePath, TextSpan>,
 }
 
 impl CommentIndex {

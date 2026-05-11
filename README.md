@@ -17,13 +17,17 @@ Please read <https://github.com/shiguredo/oss> before use.
 
 ## 概要
 
-Rust で実装された依存 0 の TOML ライブラリです。TOML v1.0.0 と v1.1.0 の両方に対応しています。
+Rust で実装された依存 0 かつ Sans I/O な TOML ライブラリです。TOML v1.0.0 と v1.1.0 の両方に対応しています。
 
 ## 特徴
 
+- Sans I/O
+  - <https://sans-io.readthedocs.io/index.html>
+- 依存ライブラリ 0
+- `no_std` 対応
+  - <https://docs.rust-embedded.org/book/intro/no-std.html>
 - TOML v1.0.0 / v1.1.0 仕様に完全準拠
 - TOML 公式テストスイート [toml-test](https://github.com/toml-lang/toml-test) 全件パス
-- 依存ライブラリ 0
 - パーサとシリアライザを提供
 - 整形済み出力 (pretty print) 対応
 - 値の位置情報 (バイト範囲) を保持
@@ -37,9 +41,10 @@ Rust で実装された依存 0 の TOML ライブラリです。TOML v1.0.0 と
 `from_str` は TOML v1.0.0 としてパースします。
 
 ```rust
-use shiguredo_toml::from_str;
+use shiguredo_toml::{Error, from_str};
 
-let table = from_str(r#"
+fn main() -> Result<(), Error> {
+    let table = from_str(r#"
 [server]
 host = "localhost"
 port = 8080
@@ -52,14 +57,29 @@ ip = "10.0.0.1"
 [[servers]]
 name = "beta"
 ip = "10.0.0.2"
-"#).unwrap();
+"#)?;
 
-let server = &table["server"];
-assert_eq!(server["host"].as_str().unwrap(), "localhost");
-assert_eq!(server["port"].as_integer().unwrap(), 8080);
+    assert_eq!(
+        table.get("server")
+            .and_then(|v| v.get("host"))
+            .and_then(|v| v.as_str()),
+        Some("localhost")
+    );
+    assert_eq!(
+        table.get("server")
+            .and_then(|v| v.get("port"))
+            .and_then(|v| v.as_integer()),
+        Some(8080)
+    );
+    assert_eq!(
+        table.get("servers")
+            .and_then(|v| v.as_array())
+            .map(|servers| servers.len()),
+        Some(2)
+    );
 
-let servers = table["servers"].as_array().unwrap();
-assert_eq!(servers.len(), 2);
+    Ok(())
+}
 ```
 
 ### バージョン指定でパース
@@ -67,52 +87,71 @@ assert_eq!(servers.len(), 2);
 `from_str_with_version` で TOML バージョンを明示できます。
 
 ```rust
-use shiguredo_toml::{from_str_with_version, TomlVersion};
+use shiguredo_toml::{Error, TomlVersion, from_str_with_version};
 
-// TOML v1.0.0 として解析する
-let table = from_str_with_version(r#"
+fn main() -> Result<(), Error> {
+    // TOML v1.0.0 として解析する
+    let _table_v1_0 = from_str_with_version(r#"
 host = "localhost"
 port = 8080
-"#, TomlVersion::V1_0).unwrap();
+"#, TomlVersion::V1_0)?;
 
-// TOML v1.1.0 として解析する
-// 複数行インラインテーブル・末尾カンマ・\e エスケープ等が使用可能
-let table = from_str_with_version(r#"
+    // TOML v1.1.0 として解析する
+    // 複数行インラインテーブル・末尾カンマ・\e エスケープ等が使用可能
+    let _table_v1_1 = from_str_with_version(r#"
 contact = {
     name = "Alice",
     email = "alice@example.com",
 }
-"#, TomlVersion::V1_1).unwrap();
+"#, TomlVersion::V1_1)?;
+
+    Ok(())
+}
 ```
 
 ### シリアライズ
 
 ```rust
-use shiguredo_toml::{Table, Value, to_string, to_string_pretty};
+use shiguredo_toml::{Error, Table, Value, to_string, to_string_pretty};
 
-let mut table = Table::new();
-table.insert("name".into(), Value::String("example".into()));
-table.insert("version".into(), Value::Integer(1));
+fn main() -> Result<(), Error> {
+    let mut table = Table::new();
+    table.insert("name".into(), Value::String("example".into()));
+    table.insert("version".into(), Value::Integer(1));
 
-let value = Value::Table(table);
-let s = to_string(&value).unwrap();
-let s_pretty = to_string_pretty(&value).unwrap();
+    let value = Value::Table(table);
+    let s = to_string(&value)?;
+    let s_pretty = to_string_pretty(&value)?;
+    assert!(!s.is_empty());
+    assert!(!s_pretty.is_empty());
+
+    Ok(())
+}
 ```
 
 ### 日時
 
 ```rust
-use shiguredo_toml::from_str;
+use shiguredo_toml::{Error, from_str};
 
-let table = from_str(r#"
+fn main() -> Result<(), Error> {
+    let table = from_str(r#"
 odt = 1979-05-27T07:32:00Z
 ldt = 1979-05-27T07:32:00
 ld = 1979-05-27
 lt = 07:32:00
-"#).unwrap();
+"#)?;
 
-let dt = table["odt"].as_datetime().unwrap();
-assert_eq!(dt.date.as_ref().unwrap().year, 1979);
+    assert_eq!(
+        table.get("odt")
+            .and_then(|v| v.as_datetime())
+            .and_then(|dt| dt.date.as_ref())
+            .map(|d| d.year),
+        Some(1979)
+    );
+
+    Ok(())
+}
 ```
 
 ### 非破壊編集
@@ -121,18 +160,25 @@ assert_eq!(dt.date.as_ref().unwrap().year, 1979);
 値を更新しても、位置情報に基づいて該当箇所だけを置換し再解析するため、コメントやフォーマットが失われません。
 
 ```rust
-use shiguredo_toml::{Document, Value};
+use shiguredo_toml::{Document, Error, Value};
 
-let mut doc = Document::parse("port = 8080 # keep\n").unwrap();
+fn main() -> Result<(), Error> {
+    let mut doc = Document::parse("port = 8080 # keep\n")?;
 
-// 値の位置情報を使って該当箇所だけを置換する
-doc.set_path("port", Value::Integer(9090)).unwrap();
+    // 値の位置情報を使って該当箇所だけを置換する
+    doc.set_path("port", Value::Integer(9090))?;
 
-// コメントの位置情報も更新後のテキストに追従する
-let comment_span = doc.trailing_comment_span_path("port").unwrap();
+    // コメントの位置情報も更新後のテキストに追従する
+    let comment_span = doc.trailing_comment_span_path("port");
 
-assert_eq!(doc.as_str(), "port = 9090 # keep\n");
-assert_eq!(&doc.as_str()[comment_span.start..comment_span.end], "# keep");
+    assert_eq!(doc.as_str(), "port = 9090 # keep\n");
+    assert!(comment_span.is_some());
+    if let Some(span) = comment_span {
+        assert_eq!(&doc.as_str()[span.start..span.end], "# keep");
+    }
+
+    Ok(())
+}
 ```
 
 ### 位置情報とコメント情報の取得
@@ -140,22 +186,29 @@ assert_eq!(&doc.as_str()[comment_span.start..comment_span.end], "# keep");
 パース結果から値やコメントのバイト範囲を直接参照できます。
 
 ```rust
-use shiguredo_toml::Document;
+use shiguredo_toml::{Document, Error};
 
-let doc = Document::parse(r#"
+fn main() -> Result<(), Error> {
+    let doc = Document::parse(r#"
 [server]
 host = "localhost" # primary
 port = 8080
-"#).unwrap();
+"#)?;
 
-// 値の位置情報 (バイト範囲) を取得する
-let span = doc.trailing_comment_span_path("server.host").unwrap();
-assert_eq!(&doc.as_str()[span.start..span.end], "# primary");
+    // 値の位置情報 (バイト範囲) を取得する
+    let span = doc.trailing_comment_span_path("server.host");
+    assert!(span.is_some());
+    if let Some(span) = span {
+        assert_eq!(&doc.as_str()[span.start..span.end], "# primary");
+    }
 
-// すべてのコメントを列挙する
-for comment in doc.comments().iter() {
-    let text = &doc.as_str()[comment.span.start..comment.span.end];
-    println!("{text}");
+    // すべてのコメントを列挙する
+    for comment in doc.comments().iter() {
+        let text = &doc.as_str()[comment.span.start..comment.span.end];
+        println!("{text}");
+    }
+
+    Ok(())
 }
 ```
 
@@ -166,7 +219,6 @@ for comment in doc.comments().iter() {
 - `doc.trailing_comment_span_path("port")`: 行末コメントの `TextSpan` を取得
 - `doc.comments()`: 収集済みコメントの一覧を取得
 - `doc.spans()`: すべての値の位置情報インデックスを取得
-
 
 ## 対応する TOML の型
 

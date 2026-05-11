@@ -1,4 +1,9 @@
-use std::collections::{HashMap, HashSet};
+use alloc::borrow::ToOwned;
+use alloc::collections::{BTreeMap, BTreeSet};
+use alloc::format;
+use alloc::string::{String, ToString};
+use alloc::vec;
+use alloc::vec::Vec;
 
 use crate::TomlVersion;
 use crate::datetime;
@@ -35,11 +40,11 @@ struct Parser<'a> {
     /// 現在のテーブルパス（`[header]` で設定される）
     current_path: Vec<String>,
     /// テーブルパス -> 定義状態のマップ
-    table_states: HashMap<Vec<String>, TableState>,
+    table_states: BTreeMap<Vec<String>, TableState>,
     /// 配列テーブルとして定義されたパスの集合
-    array_table_paths: HashSet<Vec<String>>,
+    array_table_paths: BTreeSet<Vec<String>>,
     /// 配列テーブルパスごとの現在要素インデックス
-    array_table_current_index: HashMap<Vec<String>, usize>,
+    array_table_current_index: BTreeMap<Vec<String>, usize>,
     /// 現在解析中の値パス
     value_path_stack: ValuePath,
     /// 値パスと元テキスト範囲
@@ -70,14 +75,19 @@ pub(crate) fn parse_with_spans(
     input: &str,
     version: TomlVersion,
 ) -> Result<(Table, SpanIndex, CommentIndex, SectionIndex), Error> {
+    // 入力先頭の UTF-8 BOM (U+FEFF) は読み飛ばす。
+    // TOML 1.0.0 仕様には BOM の扱いの記載がないが、toml-test の
+    // valid/utf8-bom-01, valid/utf8-bom-02 で valid 扱いされているため許容する。
+    // input は元のまま保持して position() のオフセットを元入力基準に保つ。
+    let rest = input.strip_prefix('\u{FEFF}').unwrap_or(input);
     let mut parser = Parser {
         input,
-        rest: input,
+        rest,
         root: Table::new(),
         current_path: Vec::new(),
-        table_states: HashMap::new(),
-        array_table_paths: HashSet::new(),
-        array_table_current_index: HashMap::new(),
+        table_states: BTreeMap::new(),
+        array_table_paths: BTreeSet::new(),
+        array_table_current_index: BTreeMap::new(),
         value_path_stack: Vec::new(),
         span_index: SpanIndex::new(),
         comment_index: CommentIndex::new(),
@@ -432,7 +442,7 @@ impl<'a> Parser<'a> {
                     ));
                 }
 
-                use std::collections::btree_map::Entry;
+                use alloc::collections::btree_map::Entry;
                 match table.entry(part.clone()) {
                     Entry::Occupied(entry) => match entry.into_mut() {
                         Value::Table(t) => table = t,
@@ -470,17 +480,18 @@ impl<'a> Parser<'a> {
 
             if is_last {
                 match self.table_states.get(&prefix_path) {
-                    Some(TableState::Explicit | TableState::Dotted | TableState::Implicit) => {
-                        if !self.array_table_paths.contains(&prefix_path) {
-                            return Err(Error::parse(
-                                header_pos,
-                                format!(
-                                    "'{}' is defined as a standard table and cannot be an array table",
-                                    path_to_string(&path)
-                                ),
-                            ));
-                        }
+                    Some(TableState::Explicit | TableState::Dotted | TableState::Implicit)
+                        if !self.array_table_paths.contains(&prefix_path) =>
+                    {
+                        return Err(Error::parse(
+                            header_pos,
+                            format!(
+                                "'{}' is defined as a standard table and cannot be an array table",
+                                path_to_string(&path)
+                            ),
+                        ));
                     }
+                    Some(TableState::Explicit | TableState::Dotted | TableState::Implicit) => {}
                     Some(TableState::Inline) => {
                         return Err(Error::parse(
                             header_pos,
@@ -568,7 +579,7 @@ impl<'a> Parser<'a> {
                     ));
                 }
 
-                use std::collections::btree_map::Entry;
+                use alloc::collections::btree_map::Entry;
                 match table.entry(part.clone()) {
                     Entry::Occupied(entry) => match entry.into_mut() {
                         Value::Table(t) => table = t,
@@ -663,13 +674,13 @@ impl<'a> Parser<'a> {
         key_parts: &[String],
         value: Value,
         key_pos: usize,
-        dotted_created_paths: &mut HashSet<Vec<String>>,
+        dotted_created_paths: &mut BTreeSet<Vec<String>>,
     ) -> Result<(), Error> {
         let mut current = table;
 
         for (i, part) in key_parts[..key_parts.len() - 1].iter().enumerate() {
             let path = key_parts[..=i].to_vec();
-            use std::collections::btree_map::Entry;
+            use alloc::collections::btree_map::Entry;
             match current.entry(part.clone()) {
                 Entry::Occupied(entry) => match entry.into_mut() {
                     Value::Table(t) => {
@@ -1481,7 +1492,7 @@ impl<'a> Parser<'a> {
     fn parse_inline_table(&mut self) -> Result<Value, Error> {
         self.expect(b'{')?;
         let mut result = Table::new();
-        let mut dotted_created_paths: HashSet<Vec<String>> = HashSet::new();
+        let mut dotted_created_paths: BTreeSet<Vec<String>> = BTreeSet::new();
 
         self.skip_inline_whitespace()?;
 
@@ -1669,7 +1680,7 @@ fn validate_underscore_rules(s: &str, pos: usize) -> Result<(), Error> {
 fn navigate_table_mut<'a>(
     root: &'a mut Table,
     path: &[String],
-    array_table_paths: &HashSet<Vec<String>>,
+    array_table_paths: &BTreeSet<Vec<String>>,
     err_pos: usize,
 ) -> Result<&'a mut Table, Error> {
     let mut table = root;
@@ -1718,7 +1729,7 @@ fn insert_dotted_key(
     value: Value,
     key_pos: usize,
     current_path: &[String],
-    table_states: &mut HashMap<Vec<String>, TableState>,
+    table_states: &mut BTreeMap<Vec<String>, TableState>,
 ) -> Result<(), Error> {
     let mut current = table;
 
@@ -1745,7 +1756,7 @@ fn insert_dotted_key(
             ));
         }
 
-        use std::collections::btree_map::Entry;
+        use alloc::collections::btree_map::Entry;
         match current.entry(part.clone()) {
             Entry::Occupied(entry) => match entry.into_mut() {
                 Value::Table(t) => current = t,
