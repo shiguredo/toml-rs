@@ -1,9 +1,11 @@
 target/
+.cache/
 
 # Agents
 .claude/
 .codex/
-.cache/
+.cursor/
+.opencode/
 
 # macOS
 .DS_Store
