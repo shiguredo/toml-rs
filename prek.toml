@@ -1,13 +1,19 @@
 fail_fast = true
 
+# prek の builtin フック（オフライン・依存なし）
 [[repos]]
 repo = "builtin"
 hooks = [
   { id = "trailing-whitespace" },
   { id = "end-of-file-fixer" },
+  { id = "mixed-line-ending", args = ["--fix=lf"] },
+  { id = "check-merge-conflict" },
+  { id = "check-case-conflict" },
+  { id = "detect-private-key" },
   { id = "check-toml" },
 ]
 
+# Rust 関連のローカルフック（priority の昇順で逐次実行）
 [[repos]]
 repo = "local"
 hooks = [
