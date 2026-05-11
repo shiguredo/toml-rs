@@ -11,6 +11,12 @@
 
 ## develop
 
+### misc
+
+## 2026.2.0
+
+**リリース日**: 2026-05-11
+
 - [CHANGE] `no_std` に対応する
   - `alloc` クレートが必要
   - `HashMap` / `HashSet` を `BTreeMap` / `BTreeSet` に置き換える
