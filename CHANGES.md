@@ -11,6 +11,9 @@
 
 ## develop
 
+- [CHANGE] 最小対応 Rust バージョン (MSRV) を 1.88 から 1.93 に引き上げる
+  - @voluntas
+
 ### misc
 
 ## 2026.2.0
