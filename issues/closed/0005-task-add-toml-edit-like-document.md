@@ -38,4 +38,3 @@
 - `make check`: 成功
 - `make test`: 成功
 - `make toml-test-ci`: valid 205 / encoder 205 / invalid 473 すべて成功
-

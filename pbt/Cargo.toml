@@ -5,5 +5,7 @@ edition = "2024"
 publish = false
 
 [dependencies]
+# プロパティベーステスト（proptest マクロと Strategy）
+proptest = "1.11"
+# 被テストクレート
 shiguredo_toml = { path = "../" }
-proptest = "1.9.0"

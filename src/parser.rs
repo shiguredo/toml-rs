@@ -178,7 +178,9 @@ impl<'a> Parser<'a> {
         let start = self.position();
         self.advance_bytes(1);
         while !self.at_eof() {
-            let b = self.peek().unwrap();
+            let b = self
+                .peek()
+                .expect("peek() must return Some because at_eof() is false");
             if b == b'\n' || b == b'\r' {
                 break;
             }
@@ -873,7 +875,9 @@ impl<'a> Parser<'a> {
                     )));
                 }
                 Some(_) => {
-                    let ch = self.advance_char().unwrap();
+                    let ch = self.advance_char().expect(
+                        "advance_char() must return Some because the previous peek() was Some",
+                    );
                     result.push(ch);
                 }
                 None => {
@@ -934,7 +938,9 @@ impl<'a> Parser<'a> {
                     // \r\n の \r を消費。次のループで \n を処理する。
                 }
                 Some(_) => {
-                    let ch = self.advance_char().unwrap();
+                    let ch = self.advance_char().expect(
+                        "advance_char() must return Some because the previous peek() was Some",
+                    );
                     result.push(ch);
                 }
                 None => {
@@ -1054,7 +1060,9 @@ impl<'a> Parser<'a> {
                     // \r\n の \r を消費。次のループで \n を処理する。
                 }
                 Some(_) => {
-                    let ch = self.advance_char().unwrap();
+                    let ch = self.advance_char().expect(
+                        "advance_char() must return Some because the previous peek() was Some",
+                    );
                     result.push(ch);
                 }
                 None => {

@@ -86,12 +86,15 @@ pub fn safe_string_strategy() -> impl Strategy<Value = String> {
     proptest::collection::vec(
         prop_oneof![
             // ASCII 印字可能文字（バックスラッシュとクォートを含む）
-            (0x20u32..=0x7E).prop_map(|c| char::from_u32(c).unwrap()),
+            (0x20u32..=0x7E).prop_map(|c| {
+                char::from_u32(c)
+                    .expect("char::from_u32() must succeed for ASCII printable characters")
+            }),
             // 一部の非 ASCII Unicode 文字
             prop_oneof![
-                Just('\u{00E9}'),  // e accent
-                Just('\u{3042}'),  // あ
-                Just('\u{1F600}'), // (emoji - 有効な Unicode)
+                Just('\u{00E9}'),  // é（アクセント付きラテン文字）
+                Just('\u{3042}'),  // あ（日本語）
+                Just('\u{1F600}'), // 😀（絵文字。有効な Unicode）
             ],
         ],
         0..64,

@@ -27,7 +27,9 @@ mod parse_error {
             message: "test".into(),
             position: 5, // 'e' in "def"
         };
-        let (line, col) = err.get_line_and_column(text).unwrap();
+        let (line, col) = err
+            .get_line_and_column(text)
+            .expect("line and column should be found");
         assert_eq!(line.get(), 2);
         assert_eq!(col.get(), 2);
     }
@@ -39,7 +41,9 @@ mod parse_error {
             message: "test".into(),
             position: 0,
         };
-        let (line, col) = err.get_line_and_column(text).unwrap();
+        let (line, col) = err
+            .get_line_and_column(text)
+            .expect("line and column should be found");
         assert_eq!(line.get(), 1);
         assert_eq!(col.get(), 1);
     }

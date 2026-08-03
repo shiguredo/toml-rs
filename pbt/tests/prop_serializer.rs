@@ -8,16 +8,16 @@ proptest! {
         key in bare_key_strategy(),
         value in safe_string_strategy(),
     ) {
-        let table = shiguredo_toml::from_str(&format!("{key} = \"\"")).unwrap();
+        let table = shiguredo_toml::from_str(&format!("{key} = \"\"")).expect("TOML should parse");
         // まず空文字列をパースして構造確認
-        prop_assert!(table.get(&key).unwrap().is_str());
+        prop_assert!(table.get(&key).expect("key should exist").is_str());
 
         // 実際の値を含むテーブルをプログラムで構築して直列化
         let mut table = shiguredo_toml::Table::new();
         table.insert(key.clone(), shiguredo_toml::Value::String(value.clone()));
-        let serialized = shiguredo_toml::to_string(&shiguredo_toml::Value::Table(table)).unwrap();
-        let parsed = shiguredo_toml::from_str(&serialized).unwrap();
-        prop_assert_eq!(parsed.get(&key).unwrap().as_str().unwrap(), &value);
+        let serialized = shiguredo_toml::to_string(&shiguredo_toml::Value::Table(table)).expect("serialization should succeed");
+        let parsed = shiguredo_toml::from_str(&serialized).expect("TOML should parse");
+        prop_assert_eq!(parsed.get(&key).expect("key should exist").as_str().expect("value should be a string"), &value);
     }
 
     /// 浮動小数点数のラウンドトリップ（有限値のみ）。
@@ -28,9 +28,9 @@ proptest! {
     ) {
         let mut table = shiguredo_toml::Table::new();
         table.insert(key.clone(), shiguredo_toml::Value::Float(f));
-        let serialized = shiguredo_toml::to_string(&shiguredo_toml::Value::Table(table)).unwrap();
-        let parsed = shiguredo_toml::from_str(&serialized).unwrap();
-        let parsed_f = parsed.get(&key).unwrap().as_float().unwrap();
+        let serialized = shiguredo_toml::to_string(&shiguredo_toml::Value::Table(table)).expect("serialization should succeed");
+        let parsed = shiguredo_toml::from_str(&serialized).expect("TOML should parse");
+        let parsed_f = parsed.get(&key).expect("key should exist").as_float().expect("value should be a float");
         prop_assert!((parsed_f - f).abs() < 1e-10 || parsed_f == f,
             "Float mismatch: {f} -> {parsed_f}");
     }
@@ -47,9 +47,9 @@ proptest! {
         }
         let mut table = shiguredo_toml::Table::new();
         table.insert(key.clone(), shiguredo_toml::Value::Datetime(dt.clone()));
-        let serialized = shiguredo_toml::to_string(&shiguredo_toml::Value::Table(table)).unwrap();
-        let parsed = shiguredo_toml::from_str(&serialized).unwrap();
-        let parsed_dt = parsed.get(&key).unwrap().as_datetime().unwrap();
+        let serialized = shiguredo_toml::to_string(&shiguredo_toml::Value::Table(table)).expect("serialization should succeed");
+        let parsed = shiguredo_toml::from_str(&serialized).expect("TOML should parse");
+        let parsed_dt = parsed.get(&key).expect("key should exist").as_datetime().expect("value should be a datetime");
         prop_assert_eq!(&parsed_dt.date, &dt.date);
         match (&dt.time, &parsed_dt.time) {
             (Some(t1), Some(t2)) => {

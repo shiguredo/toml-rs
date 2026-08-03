@@ -33,4 +33,3 @@
   - valid: 205 passed / 0 failed
   - encoder: 205 passed / 0 failed
   - invalid: 473 passed / 0 failed
-

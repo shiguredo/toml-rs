@@ -16,6 +16,13 @@
 
 ### misc
 
+- `unwrap()` を `expect()` に置き換える
+  - @voluntas
+- proptest を 1.11 に更新する
+  - @voluntas
+- prek に tombi フックを追加し、cargo test を pre-push に移動する
+  - @voluntas
+
 ## 2026.2.0
 
 **リリース日**: 2026-05-11

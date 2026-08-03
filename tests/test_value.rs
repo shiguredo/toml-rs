@@ -41,7 +41,13 @@ mod access {
         let mut t = Table::new();
         t.insert("key".into(), Value::Integer(1));
         let v = Value::Table(t);
-        assert_eq!(v.get("key").unwrap().as_integer().unwrap(), 1);
+        assert_eq!(
+            v.get("key")
+                .expect("key should exist")
+                .as_integer()
+                .expect("value should be an integer"),
+            1
+        );
     }
 
     #[test]
@@ -61,14 +67,17 @@ mod access {
         let mut t = Table::new();
         t.insert("key".into(), Value::Integer(1));
         let v = Value::Table(t);
-        assert_eq!(v["key"].as_integer().unwrap(), 1);
+        assert_eq!(
+            v["key"].as_integer().expect("value should be an integer"),
+            1
+        );
     }
 
     #[test]
     fn index_usize() {
         let v = Value::Array(vec![Value::Integer(10), Value::Integer(20)]);
-        assert_eq!(v[0].as_integer().unwrap(), 10);
-        assert_eq!(v[1].as_integer().unwrap(), 20);
+        assert_eq!(v[0].as_integer().expect("value should be an integer"), 10);
+        assert_eq!(v[1].as_integer().expect("value should be an integer"), 20);
     }
 
     #[test]
@@ -92,37 +101,37 @@ mod conversions {
     #[test]
     fn from_string() {
         let v: Value = "hello".into();
-        assert_eq!(v.as_str().unwrap(), "hello");
+        assert_eq!(v.as_str().expect("value should be a string"), "hello");
     }
 
     #[test]
     fn from_owned_string() {
         let v: Value = String::from("hello").into();
-        assert_eq!(v.as_str().unwrap(), "hello");
+        assert_eq!(v.as_str().expect("value should be a string"), "hello");
     }
 
     #[test]
     fn from_i64() {
         let v: Value = 42i64.into();
-        assert_eq!(v.as_integer().unwrap(), 42);
+        assert_eq!(v.as_integer().expect("value should be an integer"), 42);
     }
 
     #[test]
     fn from_i32() {
         let v: Value = 42i32.into();
-        assert_eq!(v.as_integer().unwrap(), 42);
+        assert_eq!(v.as_integer().expect("value should be an integer"), 42);
     }
 
     #[test]
     fn from_f64() {
         let v: Value = 2.72f64.into();
-        assert_eq!(v.as_float().unwrap(), 2.72);
+        assert_eq!(v.as_float().expect("value should be a float"), 2.72);
     }
 
     #[test]
     fn from_bool() {
         let v: Value = true.into();
-        assert!(v.as_bool().unwrap());
+        assert!(v.as_bool().expect("value should be a boolean"));
     }
 }
 
@@ -132,7 +141,7 @@ mod from_str {
 
     #[test]
     fn value_from_str() {
-        let v = Value::from_str("a = 1").unwrap();
+        let v = Value::from_str("a = 1").expect("input should parse");
         assert!(v.is_table());
     }
 

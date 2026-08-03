@@ -140,31 +140,35 @@ mod parse_str {
 
     #[test]
     fn offset_datetime() {
-        let dt: Datetime = "1979-05-27T07:32:00Z".parse().unwrap();
-        assert_eq!(dt.date.as_ref().unwrap().year, 1979);
-        assert_eq!(dt.date.as_ref().unwrap().month, 5);
-        assert_eq!(dt.date.as_ref().unwrap().day, 27);
-        assert_eq!(dt.time.as_ref().unwrap().hour, 7);
-        assert_eq!(dt.time.as_ref().unwrap().minute, 32);
-        assert_eq!(dt.time.as_ref().unwrap().second, 0);
+        let dt: Datetime = "1979-05-27T07:32:00Z".parse().expect("input should parse");
+        assert_eq!(dt.date.as_ref().expect("field should be set").year, 1979);
+        assert_eq!(dt.date.as_ref().expect("field should be set").month, 5);
+        assert_eq!(dt.date.as_ref().expect("field should be set").day, 27);
+        assert_eq!(dt.time.as_ref().expect("field should be set").hour, 7);
+        assert_eq!(dt.time.as_ref().expect("field should be set").minute, 32);
+        assert_eq!(dt.time.as_ref().expect("field should be set").second, 0);
         assert_eq!(dt.offset, Some(Offset::Z));
     }
 
     #[test]
     fn offset_datetime_with_offset() {
-        let dt: Datetime = "1979-05-27T07:32:00+09:00".parse().unwrap();
+        let dt: Datetime = "1979-05-27T07:32:00+09:00"
+            .parse()
+            .expect("input should parse");
         assert_eq!(dt.offset, Some(Offset::Custom { minutes: 540 }));
     }
 
     #[test]
     fn offset_datetime_negative_offset() {
-        let dt: Datetime = "1979-05-27T07:32:00-05:30".parse().unwrap();
+        let dt: Datetime = "1979-05-27T07:32:00-05:30"
+            .parse()
+            .expect("input should parse");
         assert_eq!(dt.offset, Some(Offset::Custom { minutes: -330 }));
     }
 
     #[test]
     fn local_datetime() {
-        let dt: Datetime = "1979-05-27T07:32:00".parse().unwrap();
+        let dt: Datetime = "1979-05-27T07:32:00".parse().expect("input should parse");
         assert!(dt.date.is_some());
         assert!(dt.time.is_some());
         assert!(dt.offset.is_none());
@@ -172,35 +176,41 @@ mod parse_str {
 
     #[test]
     fn local_datetime_with_space() {
-        let dt: Datetime = "1979-05-27 07:32:00".parse().unwrap();
+        let dt: Datetime = "1979-05-27 07:32:00".parse().expect("input should parse");
         assert!(dt.date.is_some());
         assert!(dt.time.is_some());
     }
 
     #[test]
     fn local_date() {
-        let dt: Datetime = "1979-05-27".parse().unwrap();
+        let dt: Datetime = "1979-05-27".parse().expect("input should parse");
         assert!(dt.date.is_some());
         assert!(dt.time.is_none());
     }
 
     #[test]
     fn local_time() {
-        let dt: Datetime = "07:32:00".parse().unwrap();
+        let dt: Datetime = "07:32:00".parse().expect("input should parse");
         assert!(dt.date.is_none());
         assert!(dt.time.is_some());
     }
 
     #[test]
     fn fractional_seconds() {
-        let dt: Datetime = "07:32:00.123456789".parse().unwrap();
-        assert_eq!(dt.time.as_ref().unwrap().nanosecond, 123456789);
+        let dt: Datetime = "07:32:00.123456789".parse().expect("input should parse");
+        assert_eq!(
+            dt.time.as_ref().expect("field should be set").nanosecond,
+            123456789
+        );
     }
 
     #[test]
     fn fractional_seconds_short() {
-        let dt: Datetime = "07:32:00.1".parse().unwrap();
-        assert_eq!(dt.time.as_ref().unwrap().nanosecond, 100000000);
+        let dt: Datetime = "07:32:00.1".parse().expect("input should parse");
+        assert_eq!(
+            dt.time.as_ref().expect("field should be set").nanosecond,
+            100000000
+        );
     }
 
     #[test]

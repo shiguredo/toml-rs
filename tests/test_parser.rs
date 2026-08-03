@@ -3,7 +3,7 @@ mod parse_error {
     fn empty_input() {
         let result = shiguredo_toml::from_str("");
         assert!(result.is_ok());
-        assert!(result.unwrap().is_empty());
+        assert!(result.expect("result should be Ok").is_empty());
     }
 
     #[test]
@@ -178,235 +178,328 @@ mod parse_success {
 
     #[test]
     fn basic_string() {
-        let t = shiguredo_toml::from_str(r#"a = "hello""#).unwrap();
-        assert_eq!(t["a"].as_str().unwrap(), "hello");
+        let t = shiguredo_toml::from_str(r#"a = "hello""#).expect("TOML should parse");
+        assert_eq!(t["a"].as_str().expect("value should be a string"), "hello");
     }
 
     #[test]
     fn basic_string_escapes() {
-        let t = shiguredo_toml::from_str(r#"a = "hello\nworld""#).unwrap();
-        assert_eq!(t["a"].as_str().unwrap(), "hello\nworld");
+        let t = shiguredo_toml::from_str(r#"a = "hello\nworld""#).expect("TOML should parse");
+        assert_eq!(
+            t["a"].as_str().expect("value should be a string"),
+            "hello\nworld"
+        );
     }
 
     #[test]
     fn literal_string() {
-        let t = shiguredo_toml::from_str(r#"a = 'C:\Users\path'"#).unwrap();
-        assert_eq!(t["a"].as_str().unwrap(), "C:\\Users\\path");
+        let t = shiguredo_toml::from_str(r#"a = 'C:\Users\path'"#).expect("TOML should parse");
+        assert_eq!(
+            t["a"].as_str().expect("value should be a string"),
+            "C:\\Users\\path"
+        );
     }
 
     #[test]
     fn multiline_basic_string() {
-        let t = shiguredo_toml::from_str("a = \"\"\"\nhello\nworld\"\"\"").unwrap();
-        assert_eq!(t["a"].as_str().unwrap(), "hello\nworld");
+        let t =
+            shiguredo_toml::from_str("a = \"\"\"\nhello\nworld\"\"\"").expect("TOML should parse");
+        assert_eq!(
+            t["a"].as_str().expect("value should be a string"),
+            "hello\nworld"
+        );
     }
 
     #[test]
     fn multiline_literal_string() {
-        let t = shiguredo_toml::from_str("a = '''\nhello\nworld'''").unwrap();
-        assert_eq!(t["a"].as_str().unwrap(), "hello\nworld");
+        let t = shiguredo_toml::from_str("a = '''\nhello\nworld'''").expect("TOML should parse");
+        assert_eq!(
+            t["a"].as_str().expect("value should be a string"),
+            "hello\nworld"
+        );
     }
 
     #[test]
     fn integer_decimal() {
-        let t = shiguredo_toml::from_str("a = 42").unwrap();
-        assert_eq!(t["a"].as_integer().unwrap(), 42);
+        let t = shiguredo_toml::from_str("a = 42").expect("TOML should parse");
+        assert_eq!(t["a"].as_integer().expect("value should be an integer"), 42);
     }
 
     #[test]
     fn integer_negative() {
-        let t = shiguredo_toml::from_str("a = -42").unwrap();
-        assert_eq!(t["a"].as_integer().unwrap(), -42);
+        let t = shiguredo_toml::from_str("a = -42").expect("TOML should parse");
+        assert_eq!(
+            t["a"].as_integer().expect("value should be an integer"),
+            -42
+        );
     }
 
     #[test]
     fn integer_positive_sign() {
-        let t = shiguredo_toml::from_str("a = +42").unwrap();
-        assert_eq!(t["a"].as_integer().unwrap(), 42);
+        let t = shiguredo_toml::from_str("a = +42").expect("TOML should parse");
+        assert_eq!(t["a"].as_integer().expect("value should be an integer"), 42);
     }
 
     #[test]
     fn integer_hex() {
-        let t = shiguredo_toml::from_str("a = 0xDEAD_BEEF").unwrap();
-        assert_eq!(t["a"].as_integer().unwrap(), 0xDEADBEEF);
+        let t = shiguredo_toml::from_str("a = 0xDEAD_BEEF").expect("TOML should parse");
+        assert_eq!(
+            t["a"].as_integer().expect("value should be an integer"),
+            0xDEADBEEF
+        );
     }
 
     #[test]
     fn integer_oct() {
-        let t = shiguredo_toml::from_str("a = 0o755").unwrap();
-        assert_eq!(t["a"].as_integer().unwrap(), 0o755);
+        let t = shiguredo_toml::from_str("a = 0o755").expect("TOML should parse");
+        assert_eq!(
+            t["a"].as_integer().expect("value should be an integer"),
+            0o755
+        );
     }
 
     #[test]
     fn integer_bin() {
-        let t = shiguredo_toml::from_str("a = 0b1101").unwrap();
-        assert_eq!(t["a"].as_integer().unwrap(), 0b1101);
+        let t = shiguredo_toml::from_str("a = 0b1101").expect("TOML should parse");
+        assert_eq!(
+            t["a"].as_integer().expect("value should be an integer"),
+            0b1101
+        );
     }
 
     #[test]
     fn integer_underscore() {
-        let t = shiguredo_toml::from_str("a = 1_000_000").unwrap();
-        assert_eq!(t["a"].as_integer().unwrap(), 1_000_000);
+        let t = shiguredo_toml::from_str("a = 1_000_000").expect("TOML should parse");
+        assert_eq!(
+            t["a"].as_integer().expect("value should be an integer"),
+            1_000_000
+        );
     }
 
     #[test]
     fn float_basic() {
-        let t = shiguredo_toml::from_str("a = 2.72").unwrap();
-        let f = t["a"].as_float().unwrap();
+        let t = shiguredo_toml::from_str("a = 2.72").expect("TOML should parse");
+        let f = t["a"].as_float().expect("value should be a float");
         assert!((f - 2.72).abs() < 1e-10);
     }
 
     #[test]
     fn float_exponent() {
-        let t = shiguredo_toml::from_str("a = 5e+22").unwrap();
-        let f = t["a"].as_float().unwrap();
+        let t = shiguredo_toml::from_str("a = 5e+22").expect("TOML should parse");
+        let f = t["a"].as_float().expect("value should be a float");
         assert!((f - 5e22).abs() < 1e12);
     }
 
     #[test]
     fn float_inf() {
-        let t = shiguredo_toml::from_str("a = inf").unwrap();
-        assert!(t["a"].as_float().unwrap().is_infinite());
-        assert!(t["a"].as_float().unwrap().is_sign_positive());
+        let t = shiguredo_toml::from_str("a = inf").expect("TOML should parse");
+        assert!(
+            t["a"]
+                .as_float()
+                .expect("value should be a float")
+                .is_infinite()
+        );
+        assert!(
+            t["a"]
+                .as_float()
+                .expect("value should be a float")
+                .is_sign_positive()
+        );
     }
 
     #[test]
     fn float_neg_inf() {
-        let t = shiguredo_toml::from_str("a = -inf").unwrap();
-        assert!(t["a"].as_float().unwrap().is_infinite());
-        assert!(t["a"].as_float().unwrap().is_sign_negative());
+        let t = shiguredo_toml::from_str("a = -inf").expect("TOML should parse");
+        assert!(
+            t["a"]
+                .as_float()
+                .expect("value should be a float")
+                .is_infinite()
+        );
+        assert!(
+            t["a"]
+                .as_float()
+                .expect("value should be a float")
+                .is_sign_negative()
+        );
     }
 
     #[test]
     fn float_nan() {
-        let t = shiguredo_toml::from_str("a = nan").unwrap();
-        assert!(t["a"].as_float().unwrap().is_nan());
+        let t = shiguredo_toml::from_str("a = nan").expect("TOML should parse");
+        assert!(t["a"].as_float().expect("value should be a float").is_nan());
     }
 
     #[test]
     fn bool_true() {
-        let t = shiguredo_toml::from_str("a = true").unwrap();
-        assert!(t["a"].as_bool().unwrap());
+        let t = shiguredo_toml::from_str("a = true").expect("TOML should parse");
+        assert!(t["a"].as_bool().expect("value should be a boolean"));
     }
 
     #[test]
     fn bool_false() {
-        let t = shiguredo_toml::from_str("a = false").unwrap();
-        assert!(!t["a"].as_bool().unwrap());
+        let t = shiguredo_toml::from_str("a = false").expect("TOML should parse");
+        assert!(!t["a"].as_bool().expect("value should be a boolean"));
     }
 
     #[test]
     fn array_basic() {
-        let t = shiguredo_toml::from_str("a = [1, 2, 3]").unwrap();
-        let arr = t["a"].as_array().unwrap();
+        let t = shiguredo_toml::from_str("a = [1, 2, 3]").expect("TOML should parse");
+        let arr = t["a"].as_array().expect("value should be an array");
         assert_eq!(arr.len(), 3);
-        assert_eq!(arr[0].as_integer().unwrap(), 1);
+        assert_eq!(arr[0].as_integer().expect("value should be an integer"), 1);
     }
 
     #[test]
     fn array_trailing_comma() {
-        let t = shiguredo_toml::from_str("a = [1, 2, 3,]").unwrap();
-        let arr = t["a"].as_array().unwrap();
+        let t = shiguredo_toml::from_str("a = [1, 2, 3,]").expect("TOML should parse");
+        let arr = t["a"].as_array().expect("value should be an array");
         assert_eq!(arr.len(), 3);
     }
 
     #[test]
     fn array_multiline() {
-        let t = shiguredo_toml::from_str("a = [\n1,\n2,\n3\n]").unwrap();
-        let arr = t["a"].as_array().unwrap();
+        let t = shiguredo_toml::from_str("a = [\n1,\n2,\n3\n]").expect("TOML should parse");
+        let arr = t["a"].as_array().expect("value should be an array");
         assert_eq!(arr.len(), 3);
     }
 
     #[test]
     fn inline_table() {
-        let t = shiguredo_toml::from_str("a = {b = 1, c = \"hello\"}").unwrap();
-        let inner = t["a"].as_table().unwrap();
-        assert_eq!(inner["b"].as_integer().unwrap(), 1);
-        assert_eq!(inner["c"].as_str().unwrap(), "hello");
+        let t = shiguredo_toml::from_str("a = {b = 1, c = \"hello\"}").expect("TOML should parse");
+        let inner = t["a"].as_table().expect("value should be a table");
+        assert_eq!(
+            inner["b"].as_integer().expect("value should be an integer"),
+            1
+        );
+        assert_eq!(
+            inner["c"].as_str().expect("value should be a string"),
+            "hello"
+        );
     }
 
     #[test]
     fn table_header() {
-        let t = shiguredo_toml::from_str("[server]\nhost = \"localhost\"\nport = 8080").unwrap();
-        let server = t["server"].as_table().unwrap();
-        assert_eq!(server["host"].as_str().unwrap(), "localhost");
-        assert_eq!(server["port"].as_integer().unwrap(), 8080);
+        let t = shiguredo_toml::from_str("[server]\nhost = \"localhost\"\nport = 8080")
+            .expect("TOML should parse");
+        let server = t["server"].as_table().expect("value should be a table");
+        assert_eq!(
+            server["host"].as_str().expect("value should be a string"),
+            "localhost"
+        );
+        assert_eq!(
+            server["port"]
+                .as_integer()
+                .expect("value should be an integer"),
+            8080
+        );
     }
 
     #[test]
     fn nested_table() {
-        let t = shiguredo_toml::from_str("[a.b]\nc = 1").unwrap();
-        let c = t["a"].as_table().unwrap()["b"].as_table().unwrap()["c"]
+        let t = shiguredo_toml::from_str("[a.b]\nc = 1").expect("TOML should parse");
+        let c = t["a"].as_table().expect("value should be a table")["b"]
+            .as_table()
+            .expect("value should be a table")["c"]
             .as_integer()
-            .unwrap();
+            .expect("value should be an integer");
         assert_eq!(c, 1);
     }
 
     #[test]
     fn array_of_tables() {
-        let t = shiguredo_toml::from_str("[[item]]\nname = \"a\"\n[[item]]\nname = \"b\"").unwrap();
-        let items = t["item"].as_array().unwrap();
+        let t = shiguredo_toml::from_str("[[item]]\nname = \"a\"\n[[item]]\nname = \"b\"")
+            .expect("TOML should parse");
+        let items = t["item"].as_array().expect("value should be an array");
         assert_eq!(items.len(), 2);
-        assert_eq!(items[0].as_table().unwrap()["name"].as_str().unwrap(), "a");
-        assert_eq!(items[1].as_table().unwrap()["name"].as_str().unwrap(), "b");
+        assert_eq!(
+            items[0].as_table().expect("value should be a table")["name"]
+                .as_str()
+                .expect("value should be a string"),
+            "a"
+        );
+        assert_eq!(
+            items[1].as_table().expect("value should be a table")["name"]
+                .as_str()
+                .expect("value should be a string"),
+            "b"
+        );
     }
 
     #[test]
     fn dotted_key() {
-        let t = shiguredo_toml::from_str("a.b.c = 1").unwrap();
-        let c = t["a"].as_table().unwrap()["b"].as_table().unwrap()["c"]
+        let t = shiguredo_toml::from_str("a.b.c = 1").expect("TOML should parse");
+        let c = t["a"].as_table().expect("value should be a table")["b"]
+            .as_table()
+            .expect("value should be a table")["c"]
             .as_integer()
-            .unwrap();
+            .expect("value should be an integer");
         assert_eq!(c, 1);
     }
 
     #[test]
     fn quoted_key() {
-        let t = shiguredo_toml::from_str("\"hello world\" = 1").unwrap();
-        assert_eq!(t["hello world"].as_integer().unwrap(), 1);
+        let t = shiguredo_toml::from_str("\"hello world\" = 1").expect("TOML should parse");
+        assert_eq!(
+            t["hello world"]
+                .as_integer()
+                .expect("value should be an integer"),
+            1
+        );
     }
 
     #[test]
     fn empty_quoted_key() {
-        let t = shiguredo_toml::from_str("\"\" = 1").unwrap();
-        assert_eq!(t[""].as_integer().unwrap(), 1);
+        let t = shiguredo_toml::from_str("\"\" = 1").expect("TOML should parse");
+        assert_eq!(t[""].as_integer().expect("value should be an integer"), 1);
     }
 
     #[test]
     fn comment() {
-        let t = shiguredo_toml::from_str("# comment\na = 1 # inline").unwrap();
-        assert_eq!(t["a"].as_integer().unwrap(), 1);
+        let t = shiguredo_toml::from_str("# comment\na = 1 # inline").expect("TOML should parse");
+        assert_eq!(t["a"].as_integer().expect("value should be an integer"), 1);
     }
 
     #[test]
     fn unicode_escape() {
-        let t = shiguredo_toml::from_str(r#"a = "\u3042""#).unwrap();
-        assert_eq!(t["a"].as_str().unwrap(), "\u{3042}");
+        let t = shiguredo_toml::from_str(r#"a = "\u3042""#).expect("TOML should parse");
+        assert_eq!(
+            t["a"].as_str().expect("value should be a string"),
+            "\u{3042}"
+        );
     }
 
     #[test]
     fn unicode_escape_8digit() {
-        let t = shiguredo_toml::from_str(r#"a = "\U0001F600""#).unwrap();
-        assert_eq!(t["a"].as_str().unwrap(), "\u{1F600}");
+        let t = shiguredo_toml::from_str(r#"a = "\U0001F600""#).expect("TOML should parse");
+        assert_eq!(
+            t["a"].as_str().expect("value should be a string"),
+            "\u{1F600}"
+        );
     }
 
     #[test]
     fn datetime_in_document() {
-        let t = shiguredo_toml::from_str("a = 1979-05-27T07:32:00Z").unwrap();
-        let dt = t["a"].as_datetime().unwrap();
-        assert_eq!(dt.date.as_ref().unwrap().year, 1979);
+        let t = shiguredo_toml::from_str("a = 1979-05-27T07:32:00Z").expect("TOML should parse");
+        let dt = t["a"].as_datetime().expect("value should be a datetime");
+        assert_eq!(dt.date.as_ref().expect("field should be set").year, 1979);
     }
 
     #[test]
     fn multiline_basic_string_line_ending_backslash() {
-        let t = shiguredo_toml::from_str("a = \"\"\"\nhello \\\n  \n  world\"\"\"").unwrap();
-        assert_eq!(t["a"].as_str().unwrap(), "hello world");
+        let t = shiguredo_toml::from_str("a = \"\"\"\nhello \\\n  \n  world\"\"\"")
+            .expect("TOML should parse");
+        assert_eq!(
+            t["a"].as_str().expect("value should be a string"),
+            "hello world"
+        );
     }
 
     #[test]
     fn mixed_types_array() {
         // TOML v1.0.0 は異種配列を許容する
-        let t = shiguredo_toml::from_str("a = [1, \"two\", 3.0]").unwrap();
-        let arr = t["a"].as_array().unwrap();
+        let t = shiguredo_toml::from_str("a = [1, \"two\", 3.0]").expect("TOML should parse");
+        let arr = t["a"].as_array().expect("value should be an array");
         assert_eq!(arr.len(), 3);
         assert!(arr[0].is_integer());
         assert!(arr[1].is_str());
@@ -415,44 +508,55 @@ mod parse_success {
 
     #[test]
     fn implicit_table_via_dotted_key() {
-        let t = shiguredo_toml::from_str("a.b = 1\na.c = 2").unwrap();
-        let a = t["a"].as_table().unwrap();
-        assert_eq!(a["b"].as_integer().unwrap(), 1);
-        assert_eq!(a["c"].as_integer().unwrap(), 2);
+        let t = shiguredo_toml::from_str("a.b = 1\na.c = 2").expect("TOML should parse");
+        let a = t["a"].as_table().expect("value should be a table");
+        assert_eq!(a["b"].as_integer().expect("value should be an integer"), 1);
+        assert_eq!(a["c"].as_integer().expect("value should be an integer"), 2);
     }
 
     #[test]
     fn super_table_implicit() {
         let input = "[a.b]\nc = 1\n[a]\nd = 2";
-        let t = shiguredo_toml::from_str(input).unwrap();
-        let a = t["a"].as_table().unwrap();
-        assert_eq!(a["d"].as_integer().unwrap(), 2);
-        assert_eq!(a["b"].as_table().unwrap()["c"].as_integer().unwrap(), 1);
+        let t = shiguredo_toml::from_str(input).expect("TOML should parse");
+        let a = t["a"].as_table().expect("value should be a table");
+        assert_eq!(a["d"].as_integer().expect("value should be an integer"), 2);
+        assert_eq!(
+            a["b"].as_table().expect("value should be a table")["c"]
+                .as_integer()
+                .expect("value should be an integer"),
+            1
+        );
     }
 
     #[test]
     fn integer_zero() {
-        let t = shiguredo_toml::from_str("a = 0").unwrap();
-        assert_eq!(t["a"].as_integer().unwrap(), 0);
+        let t = shiguredo_toml::from_str("a = 0").expect("TOML should parse");
+        assert_eq!(t["a"].as_integer().expect("value should be an integer"), 0);
     }
 
     #[test]
     fn float_zero() {
-        let t = shiguredo_toml::from_str("a = 0.0").unwrap();
-        assert_eq!(t["a"].as_float().unwrap(), 0.0);
+        let t = shiguredo_toml::from_str("a = 0.0").expect("TOML should parse");
+        assert_eq!(t["a"].as_float().expect("value should be a float"), 0.0);
     }
 
     #[test]
     fn multiline_basic_extra_quotes() {
         // 4 or 5 quotes at end: """..."""" or """..."""""
-        let t = shiguredo_toml::from_str("a = \"\"\"hello\"\"\"\"\"").unwrap();
-        assert_eq!(t["a"].as_str().unwrap(), "hello\"\"");
+        let t = shiguredo_toml::from_str("a = \"\"\"hello\"\"\"\"\"").expect("TOML should parse");
+        assert_eq!(
+            t["a"].as_str().expect("value should be a string"),
+            "hello\"\""
+        );
     }
 
     #[test]
     fn multiline_literal_extra_quotes() {
-        let t = shiguredo_toml::from_str("a = '''hello'''''").unwrap();
-        assert_eq!(t["a"].as_str().unwrap(), "hello''");
+        let t = shiguredo_toml::from_str("a = '''hello'''''").expect("TOML should parse");
+        assert_eq!(
+            t["a"].as_str().expect("value should be a string"),
+            "hello''"
+        );
     }
 
     #[test]
@@ -471,22 +575,33 @@ mod v1_1 {
     /// \e エスケープが U+001B (ESC) になることを確認する。
     #[test]
     fn escape_e_v1_1() {
-        let t = from_str_with_version("a = \"\\e\"", TomlVersion::V1_1).unwrap();
-        assert_eq!(t["a"].as_str().unwrap(), "\u{001B}");
+        let t = from_str_with_version("a = \"\\e\"", TomlVersion::V1_1).expect("TOML should parse");
+        assert_eq!(
+            t["a"].as_str().expect("value should be a string"),
+            "\u{001B}"
+        );
     }
 
     /// \x1B エスケープが U+001B (ESC) になることを確認する。
     #[test]
     fn escape_x_v1_1() {
-        let t = from_str_with_version("a = \"\\x1B\"", TomlVersion::V1_1).unwrap();
-        assert_eq!(t["a"].as_str().unwrap(), "\u{001B}");
+        let t =
+            from_str_with_version("a = \"\\x1B\"", TomlVersion::V1_1).expect("TOML should parse");
+        assert_eq!(
+            t["a"].as_str().expect("value should be a string"),
+            "\u{001B}"
+        );
     }
 
     /// \x00 エスケープが U+0000 (NUL) になることを確認する。
     #[test]
     fn escape_x_nul_v1_1() {
-        let t = from_str_with_version("a = \"\\x00\"", TomlVersion::V1_1).unwrap();
-        assert_eq!(t["a"].as_str().unwrap(), "\u{0000}");
+        let t =
+            from_str_with_version("a = \"\\x00\"", TomlVersion::V1_1).expect("TOML should parse");
+        assert_eq!(
+            t["a"].as_str().expect("value should be a string"),
+            "\u{0000}"
+        );
     }
 
     /// V1_0 で \e がエラーになることを確認する。
@@ -506,17 +621,33 @@ mod v1_1 {
     /// V1_1 でインラインテーブルの末尾カンマが許可されることを確認する。
     #[test]
     fn inline_table_trailing_comma_v1_1() {
-        let t = from_str_with_version("a = {b = 1,}", TomlVersion::V1_1).unwrap();
-        assert_eq!(t["a"]["b"].as_integer().unwrap(), 1);
+        let t =
+            from_str_with_version("a = {b = 1,}", TomlVersion::V1_1).expect("TOML should parse");
+        assert_eq!(
+            t["a"]["b"]
+                .as_integer()
+                .expect("value should be an integer"),
+            1
+        );
     }
 
     /// V1_1 でインラインテーブルの複数行が許可されることを確認する。
     #[test]
     fn inline_table_multiline_v1_1() {
         let input = "a = {\n  b = 1,\n  c = 2,\n}";
-        let t = from_str_with_version(input, TomlVersion::V1_1).unwrap();
-        assert_eq!(t["a"]["b"].as_integer().unwrap(), 1);
-        assert_eq!(t["a"]["c"].as_integer().unwrap(), 2);
+        let t = from_str_with_version(input, TomlVersion::V1_1).expect("TOML should parse");
+        assert_eq!(
+            t["a"]["b"]
+                .as_integer()
+                .expect("value should be an integer"),
+            1
+        );
+        assert_eq!(
+            t["a"]["c"]
+                .as_integer()
+                .expect("value should be an integer"),
+            2
+        );
     }
 
     /// V1_0 でインラインテーブルの末尾カンマがエラーのままであることを確認する。
@@ -537,9 +668,9 @@ mod v1_1 {
     /// V1_1 で秒省略の時刻が 07:32:00 として解析されることを確認する。
     #[test]
     fn datetime_without_seconds_v1_1() {
-        let t = from_str_with_version("t = 07:32", TomlVersion::V1_1).unwrap();
-        let dt = t["t"].as_datetime().unwrap();
-        let time = dt.time.as_ref().unwrap();
+        let t = from_str_with_version("t = 07:32", TomlVersion::V1_1).expect("TOML should parse");
+        let dt = t["t"].as_datetime().expect("value should be a datetime");
+        let time = dt.time.as_ref().expect("field should be set");
         assert_eq!(time.hour, 7);
         assert_eq!(time.minute, 32);
         assert_eq!(time.second, 0);
@@ -556,18 +687,24 @@ mod v1_1 {
     #[test]
     fn ml_literal_string_crlf_normalized_v1_1() {
         let input = "a = '''\r\nhello\r\nworld\r\n'''";
-        let t = from_str_with_version(input, TomlVersion::V1_1).unwrap();
+        let t = from_str_with_version(input, TomlVersion::V1_1).expect("TOML should parse");
         // 開始直後の CRLF は削除され、内部の CRLF は LF に正規化される
-        assert_eq!(t["a"].as_str().unwrap(), "hello\nworld\n");
+        assert_eq!(
+            t["a"].as_str().expect("value should be a string"),
+            "hello\nworld\n"
+        );
     }
 
     /// V1_0 で複数行リテラル文字列の CR が保持されることを確認する。
     #[test]
     fn ml_literal_string_cr_preserved_v1_0() {
         let input = "a = '''\nhello\r\nworld\n'''";
-        let t = from_str_with_version(input, TomlVersion::V1_0).unwrap();
+        let t = from_str_with_version(input, TomlVersion::V1_0).expect("TOML should parse");
         // V1_0 では CRLF がそのまま保持される
-        assert_eq!(t["a"].as_str().unwrap(), "hello\r\nworld\n");
+        assert_eq!(
+            t["a"].as_str().expect("value should be a string"),
+            "hello\r\nworld\n"
+        );
     }
 }
 
@@ -577,8 +714,8 @@ mod bom {
     #[test]
     fn leading_bom_then_newline_and_comment() {
         let input = "\u{FEFF}# comment\na = 1\n";
-        let t = shiguredo_toml::from_str(input).unwrap();
-        assert_eq!(t["a"].as_integer().unwrap(), 1);
+        let t = shiguredo_toml::from_str(input).expect("TOML should parse");
+        assert_eq!(t["a"].as_integer().expect("value should be an integer"), 1);
     }
 
     /// 先頭 BOM の直後にキー=値が続く場合にパース成功する。
@@ -586,14 +723,14 @@ mod bom {
     #[test]
     fn leading_bom_then_keyval_and_comment() {
         let input = "\u{FEFF}a=1# comment\n";
-        let t = shiguredo_toml::from_str(input).unwrap();
-        assert_eq!(t["a"].as_integer().unwrap(), 1);
+        let t = shiguredo_toml::from_str(input).expect("TOML should parse");
+        assert_eq!(t["a"].as_integer().expect("value should be an integer"), 1);
     }
 
     /// 先頭 BOM のみで内容が空の場合にパース成功する。
     #[test]
     fn only_bom() {
-        let t = shiguredo_toml::from_str("\u{FEFF}").unwrap();
+        let t = shiguredo_toml::from_str("\u{FEFF}").expect("TOML should parse");
         assert!(t.is_empty());
     }
 

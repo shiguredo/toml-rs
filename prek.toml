@@ -1,16 +1,50 @@
+# prek の設定。詳細は https://prek.j178.dev を参照。
+#:schema https://www.schemastore.org/prek.json
+
+# 最初に失敗したフックで残りをスキップする
 fail_fast = true
+# stages 未指定のフックは pre-commit でだけ実行される
+default_stages = ["pre-commit"]
+# prek install で pre-commit と pre-push の両方の Git フックを入れる
+default_install_hook_types = ["pre-commit", "pre-push"]
+# fuzz のビルド成果物を対象外にする
+exclude = { glob = ["target/**", "fuzz/target/**"] }
 
 # prek の builtin フック（オフライン・依存なし）
 [[repos]]
 repo = "builtin"
 hooks = [
-  { id = "trailing-whitespace" },
+  # 行末の空白を取り除く
+  # trailing whitespace 行の保持を検証するスナップショットは対象外にする
+  {
+    id = "trailing-whitespace",
+    exclude = {
+      glob = "tests/snapshots/snapshot_edit__insert_output__insert_into_section_with_trailing_whitespace_line.snap"
+    }
+  },
+  # ファイル末尾を改行 1 つで終わらせる
   { id = "end-of-file-fixer" },
+  # 改行コードを LF に統一する
   { id = "mixed-line-ending", args = ["--fix=lf"] },
-  { id = "check-merge-conflict" },
-  { id = "check-case-conflict" },
-  { id = "detect-private-key" },
+  # TOML の構文エラーを検出する
   { id = "check-toml" },
+  # マージコンフリクトマーカーが残ったコミットを防ぐ
+  { id = "check-merge-conflict" },
+  # 大文字小文字だけが異なるファイル名の衝突を防ぐ
+  { id = "check-case-conflict" },
+  # 秘密鍵の誤コミットを防ぐ
+  { id = "detect-private-key" },
+]
+
+# tombi: TOML のフォーマッタ・リンタ
+# rev は prek auto-update で更新する
+[[repos]]
+repo = "https://github.com/tombi-toml/tombi-pre-commit"
+rev = "v1.2.0"
+hooks = [
+  # Cargo.lock は自動生成ファイルなので tombi の対象外にする
+  { id = "tombi-lint", exclude = { glob = "**/Cargo.lock" } },
+  { id = "tombi-format", exclude = { glob = "**/Cargo.lock" } },
 ]
 
 # Rust 関連のローカルフック（priority の昇順で逐次実行）
@@ -29,7 +63,7 @@ hooks = [
   {
     id = "cargo-clippy",
     name = "cargo clippy",
-    entry = "cargo clippy --workspace --all-targets -- -D warnings",
+    entry = "cargo clippy --all-targets -- -D warnings",
     language = "system",
     types = ["rust"],
     pass_filenames = false,
@@ -38,10 +72,12 @@ hooks = [
   {
     id = "cargo-test",
     name = "cargo test",
-    entry = "cargo test --workspace",
+    entry = "cargo test",
     language = "system",
     types = ["rust"],
     pass_filenames = false,
+    # コミットを遅くしないため pre-push でだけ実行する
+    stages = ["pre-push"],
     priority = 20,
   },
 ]

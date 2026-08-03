@@ -17,4 +17,5 @@ exclude = ["fuzz", "tools/toml-test-adapter"]
 [dependencies]
 
 [dev-dependencies]
+# スナップショットテスト（パーサ・シリアライザ・エディタの出力検証）
 insta = "1.47"

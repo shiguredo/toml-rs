@@ -7,7 +7,7 @@ mod basic {
     fn empty_table() {
         let table = Table::new();
         let value = Value::Table(table);
-        let s = shiguredo_toml::to_string(&value).unwrap();
+        let s = shiguredo_toml::to_string(&value).expect("serialization should succeed");
         assert_eq!(s, "");
     }
 
@@ -15,7 +15,8 @@ mod basic {
     fn simple_key_value() {
         let mut table = Table::new();
         table.insert("key".into(), Value::String("value".into()));
-        let s = shiguredo_toml::to_string(&Value::Table(table)).unwrap();
+        let s =
+            shiguredo_toml::to_string(&Value::Table(table)).expect("serialization should succeed");
         assert_eq!(s, "key = \"value\"\n");
     }
 
@@ -23,7 +24,8 @@ mod basic {
     fn integer_value() {
         let mut table = Table::new();
         table.insert("a".into(), Value::Integer(42));
-        let s = shiguredo_toml::to_string(&Value::Table(table)).unwrap();
+        let s =
+            shiguredo_toml::to_string(&Value::Table(table)).expect("serialization should succeed");
         assert_eq!(s, "a = 42\n");
     }
 
@@ -31,7 +33,8 @@ mod basic {
     fn float_value() {
         let mut table = Table::new();
         table.insert("a".into(), Value::Float(2.72));
-        let s = shiguredo_toml::to_string(&Value::Table(table)).unwrap();
+        let s =
+            shiguredo_toml::to_string(&Value::Table(table)).expect("serialization should succeed");
         assert!(s.starts_with("a = 2.72"));
     }
 
@@ -39,7 +42,8 @@ mod basic {
     fn float_integer_like() {
         let mut table = Table::new();
         table.insert("a".into(), Value::Float(1.0));
-        let s = shiguredo_toml::to_string(&Value::Table(table)).unwrap();
+        let s =
+            shiguredo_toml::to_string(&Value::Table(table)).expect("serialization should succeed");
         // 整数っぽい浮動小数点数でも .0 が付く
         assert!(s.contains('.'));
     }
@@ -48,7 +52,8 @@ mod basic {
     fn float_inf() {
         let mut table = Table::new();
         table.insert("a".into(), Value::Float(f64::INFINITY));
-        let s = shiguredo_toml::to_string(&Value::Table(table)).unwrap();
+        let s =
+            shiguredo_toml::to_string(&Value::Table(table)).expect("serialization should succeed");
         assert_eq!(s, "a = inf\n");
     }
 
@@ -56,7 +61,8 @@ mod basic {
     fn float_neg_inf() {
         let mut table = Table::new();
         table.insert("a".into(), Value::Float(f64::NEG_INFINITY));
-        let s = shiguredo_toml::to_string(&Value::Table(table)).unwrap();
+        let s =
+            shiguredo_toml::to_string(&Value::Table(table)).expect("serialization should succeed");
         assert_eq!(s, "a = -inf\n");
     }
 
@@ -64,7 +70,8 @@ mod basic {
     fn float_nan() {
         let mut table = Table::new();
         table.insert("a".into(), Value::Float(f64::NAN));
-        let s = shiguredo_toml::to_string(&Value::Table(table)).unwrap();
+        let s =
+            shiguredo_toml::to_string(&Value::Table(table)).expect("serialization should succeed");
         assert_eq!(s, "a = nan\n");
     }
 
@@ -73,7 +80,8 @@ mod basic {
         let mut table = Table::new();
         table.insert("a".into(), Value::Boolean(true));
         table.insert("b".into(), Value::Boolean(false));
-        let s = shiguredo_toml::to_string(&Value::Table(table)).unwrap();
+        let s =
+            shiguredo_toml::to_string(&Value::Table(table)).expect("serialization should succeed");
         assert!(s.contains("a = true"));
         assert!(s.contains("b = false"));
     }
@@ -82,7 +90,8 @@ mod basic {
     fn string_escape() {
         let mut table = Table::new();
         table.insert("a".into(), Value::String("hello\nworld".into()));
-        let s = shiguredo_toml::to_string(&Value::Table(table)).unwrap();
+        let s =
+            shiguredo_toml::to_string(&Value::Table(table)).expect("serialization should succeed");
         assert!(s.contains("\\n"));
     }
 
@@ -90,7 +99,8 @@ mod basic {
     fn string_with_quotes() {
         let mut table = Table::new();
         table.insert("a".into(), Value::String("say \"hi\"".into()));
-        let s = shiguredo_toml::to_string(&Value::Table(table)).unwrap();
+        let s =
+            shiguredo_toml::to_string(&Value::Table(table)).expect("serialization should succeed");
         assert!(s.contains("\\\""));
     }
 
@@ -98,7 +108,8 @@ mod basic {
     fn string_with_backslash() {
         let mut table = Table::new();
         table.insert("a".into(), Value::String("C:\\path".into()));
-        let s = shiguredo_toml::to_string(&Value::Table(table)).unwrap();
+        let s =
+            shiguredo_toml::to_string(&Value::Table(table)).expect("serialization should succeed");
         assert!(s.contains("\\\\"));
     }
 }
@@ -112,7 +123,8 @@ mod structure {
         inner.insert("key".into(), Value::Integer(1));
         let mut table = Table::new();
         table.insert("section".into(), Value::Table(inner));
-        let s = shiguredo_toml::to_string(&Value::Table(table)).unwrap();
+        let s =
+            shiguredo_toml::to_string(&Value::Table(table)).expect("serialization should succeed");
         assert!(s.contains("[section]"));
         assert!(s.contains("key = 1"));
     }
@@ -128,7 +140,8 @@ mod structure {
             "items".into(),
             Value::Array(vec![Value::Table(item1), Value::Table(item2)]),
         );
-        let s = shiguredo_toml::to_string(&Value::Table(table)).unwrap();
+        let s =
+            shiguredo_toml::to_string(&Value::Table(table)).expect("serialization should succeed");
         assert!(s.contains("[[items]]"));
         assert!(s.contains("name = \"a\""));
         assert!(s.contains("name = \"b\""));
@@ -145,7 +158,8 @@ mod structure {
                 Value::Integer(3),
             ]),
         );
-        let s = shiguredo_toml::to_string(&Value::Table(table)).unwrap();
+        let s =
+            shiguredo_toml::to_string(&Value::Table(table)).expect("serialization should succeed");
         assert_eq!(s, "arr = [1, 2, 3]\n");
     }
 
@@ -153,7 +167,8 @@ mod structure {
     fn empty_array() {
         let mut table = Table::new();
         table.insert("arr".into(), Value::Array(vec![]));
-        let s = shiguredo_toml::to_string(&Value::Table(table)).unwrap();
+        let s =
+            shiguredo_toml::to_string(&Value::Table(table)).expect("serialization should succeed");
         assert_eq!(s, "arr = []\n");
     }
 
@@ -161,7 +176,8 @@ mod structure {
     fn key_quoting() {
         let mut table = Table::new();
         table.insert("hello world".into(), Value::Integer(1));
-        let s = shiguredo_toml::to_string(&Value::Table(table)).unwrap();
+        let s =
+            shiguredo_toml::to_string(&Value::Table(table)).expect("serialization should succeed");
         assert!(s.contains("\"hello world\""));
     }
 
@@ -169,7 +185,8 @@ mod structure {
     fn empty_key_quoting() {
         let mut table = Table::new();
         table.insert("".into(), Value::Integer(1));
-        let s = shiguredo_toml::to_string(&Value::Table(table)).unwrap();
+        let s =
+            shiguredo_toml::to_string(&Value::Table(table)).expect("serialization should succeed");
         assert!(s.contains("\"\""));
     }
 
@@ -192,7 +209,8 @@ mod pretty {
         let mut table = Table::new();
         table.insert("x".into(), Value::Table(inner1));
         table.insert("y".into(), Value::Table(inner2));
-        let s = shiguredo_toml::to_string_pretty(&Value::Table(table)).unwrap();
+        let s = shiguredo_toml::to_string_pretty(&Value::Table(table))
+            .expect("serialization should succeed");
         // pretty モードではテーブル間に空行
         assert!(s.contains("\n\n"));
     }
