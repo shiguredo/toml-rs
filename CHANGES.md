@@ -15,6 +15,9 @@
   - @voluntas
 - [FIX] 配列テーブルを再オープンした後にサブテーブルを定義するとエラーになるのを修正する
   - @voluntas
+- [FIX] 無効な Datetime をシリアライズするとエラーになるようにする
+  - `Datetime::validate` を追加し、シリアライズ時に検証する
+  - @voluntas
 
 ### misc
 

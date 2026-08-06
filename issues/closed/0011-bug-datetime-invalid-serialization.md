@@ -1,7 +1,7 @@
 # 無効な Datetime からシリアライザが Ok のまま無効な TOML を生成する
 
 - Created: 2026-08-06
-- Completed: {YYYY-MM-DD}
+- Completed: 2026-08-06
 - Branch: feature/fix-datetime-serialization-validation
 - Polished: 2026-08-06
 
@@ -37,15 +37,14 @@
 
 ## 解決方法
 
-- 修正: `Datetime::validate`（src/datetime.rs）を `pub fn` として新規実装する。各フィールドの `validate()` 呼び出しに加えて、4 バリアント以外の組み合わせ（date と time の両方が None、offset が Some で date か time の片方が None）を拒否する
-- 修正: `Date::validate`（src/datetime.rs）に year ≤ 9999 のチェックを追加する
-- 修正: `Serializer::write_inline_value`（src/serializer.rs）の `Value::Datetime` 分岐で、出力前に `dt.validate()` を呼び、`Error::Validate` を `Error::Serialize` に変換して返す
-- テスト: シリアライザ経由の検証を `tests/test_serializer.rs` に、`validate` 単体の検証を `tests/test_datetime.rs` に、`Document` 経由の検証を `tests/test_edit.rs` に追加する。無効ケースは `to_string` と `to_inline_string` の 2 経路で検証する（`to_string_pretty` は `to_string` と共通実装のため省略可）
-  - `tests/test_serializer.rs`: 無効な `Datetime` がエラー（`Error::Serialize`）になること
-    - date / time 両方 None の `Datetime`（offset あり・なし両方）
-    - 範囲外の `Date`（month 13 / day 40 / year 10000）・`Time`（hour 24）・`Offset`（minutes 1440）を含む `Datetime`
-    - date のみ + offset、time のみ + offset の組み合わせ（オフセットが黙って破棄されないこと）
-  - `tests/test_serializer.rs`: valid な 4 バリアントのラウンドトリップ（`to_string` でシリアライズして再パースし、値が一致すること、および単体の `Value::Datetime` を `to_inline_string` に渡して Ok になること）が従来どおり成功すること
-  - `tests/test_edit.rs`: 無効な `Datetime` を `Document::set` / `set_path`（src/edit.rs）に渡すと `Err` になり、ドキュメントの内容が変化しないこと
-  - `tests/test_datetime.rs`: `Date::validate` の year 境界値（10000 はエラー、9999 は成功）と、`Datetime::validate` の 4 バリアント以外の組み合わせがエラーになること
-- `CHANGES.md` に `[FIX]` エントリを追加する
+- 修正: `Datetime::validate`（src/datetime.rs）を `pub fn` として新規実装する。各フィールドの `validate()` 呼び出しに加えて、TOML v1.0.0 / v1.1.0 仕様の 4 バリアント（Offset Date-Time / Local Date-Time / Local Date / Local Time）に該当しない組み合わせ（date と time の両方が None、offset があるのに date か time の片方が欠ける）を拒否する。組み合わせは 8 通りを全列挙し、エラーメッセージで欠けている要素を区別する
+- 修正: `Date::validate`（src/datetime.rs）に year ≤ 9999 のチェックを追加する（RFC 3339 section 5.6 の date-fullyear = 4DIGIT）
+- 修正: `Serializer::write_inline_value`（src/serializer.rs）の `Value::Datetime` 分岐で、出力前に `dt.validate()` を呼び、`Error::Validate` の message を保持したまま `Error::Serialize` に変換して返す
+- 修正: `Datetime` の `Display` 実装の doc コメントに、検証は行わない旨と、シリアライズは `Value::Datetime` で包んでクレートの関数を使う旨を明記する
+- テスト: シリアライザ経由の検証を `tests/test_serializer.rs` に、`validate` 単体の検証を `tests/test_datetime.rs` に、`Document` 経由の検証を `tests/test_edit.rs` に追加する（3 ファイルとも `datetime_validate` モジュール）
+  - `tests/test_serializer.rs`: 無効な `Datetime` がエラー（`Error::Serialize`）になること。date / time 両方 None（offset あり・なし）、範囲外の `Date`（month 13 / day 40 / year 10000）・`Time`（hour 24）・`Offset`（minutes 1440）、date のみ + offset / time のみ + offset の組み合わせを、`to_string` / `to_string_pretty` / `to_inline_string` の 3 経路で検証する
+  - `tests/test_serializer.rs`: 配列・サブテーブルにネストした無効な `Datetime` もエラーになること、`Error::Serialize` のメッセージに検証メッセージが保持されること
+  - `tests/test_serializer.rs`: valid な 4 バリアントのラウンドトリップ（`to_string` の出力が入力の正準形と同一で、再パースで値が一致すること、単体の `Value::Datetime` を `to_inline_string` に渡すと入力と同じ表現が返ること）
+  - `tests/test_edit.rs`: 無効な `Datetime` を `Document::set` / `set_path`（既存キー置換・`set` 直接・新規キー挿入・インラインテーブル挿入・セクション自動生成の 5 経路）に渡すと `Err`（`Error::Serialize`）になり、ドキュメントの内容が変化しないこと
+  - `tests/test_datetime.rs`: `Date::validate` の year 境界値（10000 はエラー、9999 は成功）、`Datetime::validate` の 4 バリアント以外の組み合わせがエラーになること、4 バリアントが成功すること、エラーメッセージの内容、範囲外のフィールド（month / nanosecond）が弾かれること
+- `CHANGES.md` に `[FIX]` エントリを追加する（`Datetime::validate` の追加を含めて記載）

@@ -182,6 +182,14 @@ impl Serializer {
                 self.output.push_str(if *b { "true" } else { "false" });
             }
             Value::Datetime(dt) => {
+                // 公開 API 経由で無効な Datetime が構築されることがあるため、
+                // Display の空文字・情報欠落・範囲外の値による再パース不能な
+                // 出力を防ぐために出力前に検証する。
+                // 検証エラーは Error::Validate ではなく Error::Serialize として返す。
+                dt.validate().map_err(|e| match e {
+                    Error::Validate { message } => Error::Serialize { message },
+                    e => unreachable!("Datetime::validate must return Error::Validate, got {e:?}"),
+                })?;
                 self.output.push_str(&dt.to_string());
             }
             Value::Array(arr) => {
