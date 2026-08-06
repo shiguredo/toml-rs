@@ -18,4 +18,4 @@ exclude = ["fuzz", "tools/toml-test-adapter"]
 
 [dev-dependencies]
 # スナップショットテスト（パーサ・シリアライザ・エディタの出力検証）
-insta = "1.47"
+insta = "1.48"
