@@ -10,7 +10,7 @@ bool_true = true
 bool_false = false
 "#,
         )
-        .expect("TOML should parse");
+        .expect("TOML のパースに成功するはず");
         insta::assert_debug_snapshot!(table);
     }
 
@@ -23,7 +23,7 @@ neg_inf = -inf
 nan_val = nan
 "#,
         )
-        .expect("TOML should parse");
+        .expect("TOML のパースに成功するはず");
         // NaN は Debug 出力で NaN になるのでスナップショット可能
         insta::assert_debug_snapshot!(table);
     }
@@ -41,7 +41,7 @@ negative = -17
 zero = 0
 "#,
         )
-        .expect("TOML should parse");
+        .expect("TOML のパースに成功するはず");
         insta::assert_debug_snapshot!(table);
     }
 
@@ -53,14 +53,14 @@ basic = "hello\nworld"
 literal = 'C:\Users\path'
 "#,
         )
-        .expect("TOML should parse");
+        .expect("TOML のパースに成功するはず");
         insta::assert_debug_snapshot!(table);
     }
 
     #[test]
     fn multiline_strings() {
         let input = "ml_basic = \"\"\"\nhello\nworld\"\"\"\nml_literal = '''\nhello\nworld'''";
-        let table = shiguredo_toml::from_str(input).expect("TOML should parse");
+        let table = shiguredo_toml::from_str(input).expect("TOML のパースに成功するはず");
         insta::assert_debug_snapshot!(table);
     }
 
@@ -76,7 +76,7 @@ lt = 07:32:00
 lt_frac = 07:32:00.123456789
 "#,
         )
-        .expect("TOML should parse");
+        .expect("TOML のパースに成功するはず");
         insta::assert_debug_snapshot!(table);
     }
 }
@@ -98,7 +98,7 @@ cert = "/path/to/cert.pem"
 name = "mydb"
 "#,
         )
-        .expect("TOML should parse");
+        .expect("TOML のパースに成功するはず");
         insta::assert_debug_snapshot!(table);
     }
 
@@ -116,7 +116,7 @@ sku = 284758393
 color = "gray"
 "#,
         )
-        .expect("TOML should parse");
+        .expect("TOML のパースに成功するはず");
         insta::assert_debug_snapshot!(table);
     }
 
@@ -141,7 +141,7 @@ name = "banana"
 name = "plantain"
 "#,
         )
-        .expect("TOML should parse");
+        .expect("TOML のパースに成功するはず");
         insta::assert_debug_snapshot!(table);
     }
 
@@ -153,7 +153,7 @@ point = {x = 1, y = 2}
 animal = {type.name = "pug"}
 "#,
         )
-        .expect("TOML should parse");
+        .expect("TOML のパースに成功するはず");
         insta::assert_debug_snapshot!(table);
     }
 
@@ -168,7 +168,7 @@ empty = []
 mixed = [1, "two", 3.0, true]
 "#,
         )
-        .expect("TOML should parse");
+        .expect("TOML のパースに成功するはず");
         insta::assert_debug_snapshot!(table);
     }
 }
@@ -184,7 +184,7 @@ physical.shape = "round"
 site."google.com" = true
 "#,
         )
-        .expect("TOML should parse");
+        .expect("TOML のパースに成功するはず");
         insta::assert_debug_snapshot!(table);
     }
 
@@ -198,7 +198,7 @@ site."google.com" = true
 "ʎǝʞ" = "unicode"
 "#,
         )
-        .expect("TOML should parse");
+        .expect("TOML のパースに成功するはず");
         insta::assert_debug_snapshot!(table);
     }
 }
@@ -231,7 +231,7 @@ ip = "10.0.0.2"
 role = "backend"
 "#,
         )
-        .expect("TOML should parse");
+        .expect("TOML のパースに成功するはず");
         insta::assert_debug_snapshot!(table);
     }
 
@@ -246,7 +246,7 @@ key = "value" # inline comment
 other = 42
 "#,
         )
-        .expect("TOML should parse");
+        .expect("TOML のパースに成功するはず");
         insta::assert_debug_snapshot!(table);
     }
 
@@ -261,7 +261,7 @@ c = 1
 d = 2
 "#,
         )
-        .expect("TOML should parse");
+        .expect("TOML のパースに成功するはず");
         insta::assert_debug_snapshot!(table);
     }
 }

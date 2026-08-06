@@ -7,7 +7,7 @@ proptest! {
     #[test]
     fn date_roundtrip(date in date_strategy()) {
         let s = date.to_string();
-        let parsed: Datetime = s.parse().expect("input should parse");
+        let parsed: Datetime = s.parse().expect("入力のパースに成功するはず");
         prop_assert_eq!(parsed.date.as_ref(), Some(&date));
         prop_assert!(parsed.time.is_none());
         prop_assert!(parsed.offset.is_none());
@@ -17,9 +17,9 @@ proptest! {
     #[test]
     fn time_roundtrip(time in time_strategy()) {
         let s = time.to_string();
-        let parsed: Datetime = s.parse().expect("input should parse");
+        let parsed: Datetime = s.parse().expect("入力のパースに成功するはず");
         prop_assert!(parsed.date.is_none());
-        let parsed_time = parsed.time.as_ref().expect("field should be set");
+        let parsed_time = parsed.time.as_ref().expect("フィールドは設定されるはず");
         prop_assert_eq!(parsed_time.hour, time.hour);
         prop_assert_eq!(parsed_time.minute, time.minute);
         prop_assert_eq!(parsed_time.second, time.second);
@@ -33,15 +33,15 @@ proptest! {
         let s = offset.to_string();
         // Offset は直接 FromStr を持たないが、Datetime として検証
         let dt_str = format!("2000-01-01T00:00:00{s}");
-        let parsed: Datetime = dt_str.parse().expect("input should parse");
+        let parsed: Datetime = dt_str.parse().expect("入力のパースに成功するはず");
         prop_assert!(parsed.offset.is_some());
-        let parsed_offset = parsed.offset.expect("offset should be set");
+        let parsed_offset = parsed.offset.expect("オフセットは設定されるはず");
         match (&offset, &parsed_offset) {
             (Offset::Z, Offset::Z) => {}
             (Offset::Custom { minutes: m1 }, Offset::Custom { minutes: m2 }) => {
                 prop_assert_eq!(m1, m2);
             }
-            _ => prop_assert!(false, "Offset type mismatch"),
+            _ => prop_assert!(false, "オフセットの型が一致しない"),
         }
     }
 
@@ -53,7 +53,7 @@ proptest! {
             // date=None, time=None の場合はスキップ
             return Ok(());
         }
-        let parsed: Datetime = s.parse().expect("input should parse");
+        let parsed: Datetime = s.parse().expect("入力のパースに成功するはず");
         prop_assert_eq!(parsed.date, dt.date);
         // time のナノ秒は表示上末尾ゼロが除去されるが parse で復元される
         match (&dt.time, &parsed.time) {
@@ -64,7 +64,7 @@ proptest! {
                 prop_assert_eq!(t1.nanosecond, t2.nanosecond);
             }
             (None, None) => {}
-            _ => prop_assert!(false, "Time presence mismatch"),
+            _ => prop_assert!(false, "時刻の有無が一致しない"),
         }
         prop_assert_eq!(parsed.offset, dt.offset);
     }

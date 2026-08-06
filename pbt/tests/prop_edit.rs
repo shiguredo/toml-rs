@@ -11,12 +11,12 @@ proptest! {
         new in any::<i64>(),
     ) {
         let input = format!("{key} = {old}\n");
-        let mut doc = Document::parse(&input).expect("TOML should parse");
+        let mut doc = Document::parse(&input).expect("TOML のパースに成功するはず");
 
-        doc.set_path(&key, Value::Integer(new)).expect("edit should succeed");
+        doc.set_path(&key, Value::Integer(new)).expect("編集に成功するはず");
 
-        let parsed = shiguredo_toml::from_str(doc.as_str()).expect("TOML should parse");
-        prop_assert_eq!(parsed[&key].as_integer().expect("value should be an integer"), new);
+        let parsed = shiguredo_toml::from_str(doc.as_str()).expect("TOML のパースに成功するはず");
+        prop_assert_eq!(parsed[&key].as_integer().expect("値は整数になるはず"), new);
     }
 
     /// 新規キーを挿入後、get_path で取得できる。
@@ -31,18 +31,18 @@ proptest! {
         prop_assume!(existing_key != new_key);
 
         let input = format!("{existing_key} = {existing_val}\n");
-        let mut doc = Document::parse(&input).expect("TOML should parse");
+        let mut doc = Document::parse(&input).expect("TOML のパースに成功するはず");
 
-        doc.set_path(&new_key, Value::Integer(new_val)).expect("edit should succeed");
+        doc.set_path(&new_key, Value::Integer(new_val)).expect("編集に成功するはず");
 
         // 挿入したキーが取得できる
         prop_assert_eq!(
-            doc.get_path(&new_key).expect("path should exist").as_integer().expect("value should be an integer"),
+            doc.get_path(&new_key).expect("パスは存在するはず").as_integer().expect("値は整数になるはず"),
             new_val
         );
         // 既存キーも保持される
         prop_assert_eq!(
-            doc.get_path(&existing_key).expect("path should exist").as_integer().expect("value should be an integer"),
+            doc.get_path(&existing_key).expect("パスは存在するはず").as_integer().expect("値は整数になるはず"),
             existing_val
         );
     }
@@ -58,13 +58,13 @@ proptest! {
         prop_assume!(existing_key != new_key);
 
         let input = format!("{existing_key} = {existing_val}\n");
-        let mut doc = Document::parse(&input).expect("TOML should parse");
+        let mut doc = Document::parse(&input).expect("TOML のパースに成功するはず");
 
-        doc.set_path(&new_key, Value::Integer(new_val)).expect("edit should succeed");
+        doc.set_path(&new_key, Value::Integer(new_val)).expect("編集に成功するはず");
 
         // 出力が有効な TOML であることを検証する
-        let parsed = shiguredo_toml::from_str(doc.as_str()).expect("TOML should parse");
-        prop_assert_eq!(parsed[&new_key].as_integer().expect("value should be an integer"), new_val);
-        prop_assert_eq!(parsed[&existing_key].as_integer().expect("value should be an integer"), existing_val);
+        let parsed = shiguredo_toml::from_str(doc.as_str()).expect("TOML のパースに成功するはず");
+        prop_assert_eq!(parsed[&new_key].as_integer().expect("値は整数になるはず"), new_val);
+        prop_assert_eq!(parsed[&existing_key].as_integer().expect("値は整数になるはず"), existing_val);
     }
 }

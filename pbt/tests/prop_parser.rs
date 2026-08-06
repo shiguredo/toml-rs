@@ -6,11 +6,11 @@ proptest! {
     #[test]
     fn parse_serialize_parse_roundtrip(table in pbt::table_strategy()) {
         let value = shiguredo_toml::Value::Table(table);
-        let serialized = shiguredo_toml::to_string(&value).expect("serialization should succeed");
-        let parsed1 = shiguredo_toml::from_str(&serialized).expect("TOML should parse");
+        let serialized = shiguredo_toml::to_string(&value).expect("シリアライズに成功するはず");
+        let parsed1 = shiguredo_toml::from_str(&serialized).expect("TOML のパースに成功するはず");
         let re_serialized = shiguredo_toml::to_string(&shiguredo_toml::Value::Table(parsed1.clone()))
-            .expect("serialization should succeed");
-        let parsed2 = shiguredo_toml::from_str(&re_serialized).expect("TOML should parse");
+            .expect("シリアライズに成功するはず");
+        let parsed2 = shiguredo_toml::from_str(&re_serialized).expect("TOML のパースに成功するはず");
         prop_assert_eq!(parsed1, parsed2);
     }
 
@@ -21,8 +21,8 @@ proptest! {
         val in any::<i64>(),
     ) {
         let input = format!("{key} = {val}");
-        let table = shiguredo_toml::from_str(&input).expect("TOML should parse");
-        prop_assert_eq!(table.get(&key).expect("key should exist").as_integer().expect("value should be an integer"), val);
+        let table = shiguredo_toml::from_str(&input).expect("TOML のパースに成功するはず");
+        prop_assert_eq!(table.get(&key).expect("キーは存在するはず").as_integer().expect("値は整数になるはず"), val);
     }
 
     /// bool 値の解析。
@@ -32,17 +32,17 @@ proptest! {
         b in any::<bool>(),
     ) {
         let input = format!("{key} = {b}");
-        let table = shiguredo_toml::from_str(&input).expect("TOML should parse");
-        prop_assert_eq!(table.get(&key).expect("key should exist").as_bool().expect("value should be a boolean"), b);
+        let table = shiguredo_toml::from_str(&input).expect("TOML のパースに成功するはず");
+        prop_assert_eq!(table.get(&key).expect("キーは存在するはず").as_bool().expect("値はブール値になるはず"), b);
     }
 
     /// 空テーブルの解析と直列化。
     #[test]
     fn empty_table_roundtrip(_dummy in 0..1u8) {
         let input = "";
-        let table = shiguredo_toml::from_str(input).expect("TOML should parse");
+        let table = shiguredo_toml::from_str(input).expect("TOML のパースに成功するはず");
         prop_assert!(table.is_empty());
-        let serialized = shiguredo_toml::to_string(&shiguredo_toml::Value::Table(table)).expect("serialization should succeed");
+        let serialized = shiguredo_toml::to_string(&shiguredo_toml::Value::Table(table)).expect("シリアライズに成功するはず");
         prop_assert_eq!(serialized, "");
     }
 
@@ -50,11 +50,11 @@ proptest! {
     #[test]
     fn parse_serialize_parse_roundtrip_v1_1(table in pbt::table_strategy()) {
         let value = shiguredo_toml::Value::Table(table);
-        let serialized = shiguredo_toml::to_string(&value).expect("serialization should succeed");
-        let parsed1 = shiguredo_toml::from_str_with_version(&serialized, shiguredo_toml::TomlVersion::V1_1).expect("TOML should parse");
+        let serialized = shiguredo_toml::to_string(&value).expect("シリアライズに成功するはず");
+        let parsed1 = shiguredo_toml::from_str_with_version(&serialized, shiguredo_toml::TomlVersion::V1_1).expect("TOML のパースに成功するはず");
         let re_serialized = shiguredo_toml::to_string(&shiguredo_toml::Value::Table(parsed1.clone()))
-            .expect("serialization should succeed");
-        let parsed2 = shiguredo_toml::from_str_with_version(&re_serialized, shiguredo_toml::TomlVersion::V1_1).expect("TOML should parse");
+            .expect("シリアライズに成功するはず");
+        let parsed2 = shiguredo_toml::from_str_with_version(&re_serialized, shiguredo_toml::TomlVersion::V1_1).expect("TOML のパースに成功するはず");
         prop_assert_eq!(parsed1, parsed2);
     }
 }

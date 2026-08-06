@@ -45,8 +45,8 @@ proptest! {
     #[test]
     fn table_roundtrip(table in table_strategy()) {
         let value = Value::Table(table.clone());
-        let toml_str = shiguredo_toml::to_string(&value).expect("serialization should succeed");
-        let parsed = shiguredo_toml::from_str(&toml_str).expect("TOML should parse");
+        let toml_str = shiguredo_toml::to_string(&value).expect("シリアライズに成功するはず");
+        let parsed = shiguredo_toml::from_str(&toml_str).expect("TOML のパースに成功するはず");
         prop_assert!(
             tables_equal(&table, &parsed),
             "Round-trip failed.\nOriginal: {table:?}\nSerialized:\n{toml_str}\nParsed: {parsed:?}"
@@ -59,9 +59,9 @@ proptest! {
     #[test]
     fn serialize_idempotent(table in table_strategy()) {
         let value = Value::Table(table);
-        let first = shiguredo_toml::to_string(&value).expect("serialization should succeed");
-        let parsed = shiguredo_toml::from_str(&first).expect("TOML should parse");
-        let second = shiguredo_toml::to_string(&Value::Table(parsed)).expect("serialization should succeed");
+        let first = shiguredo_toml::to_string(&value).expect("シリアライズに成功するはず");
+        let parsed = shiguredo_toml::from_str(&first).expect("TOML のパースに成功するはず");
+        let second = shiguredo_toml::to_string(&Value::Table(parsed)).expect("シリアライズに成功するはず");
         prop_assert_eq!(first, second);
     }
 }

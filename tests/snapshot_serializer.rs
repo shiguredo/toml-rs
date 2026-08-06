@@ -28,7 +28,7 @@ mod simple_key_values {
             }),
         );
         let s =
-            shiguredo_toml::to_string(&Value::Table(table)).expect("serialization should succeed");
+            shiguredo_toml::to_string(&Value::Table(table)).expect("シリアライズに成功するはず");
         insta::assert_snapshot!(s);
     }
 
@@ -39,7 +39,7 @@ mod simple_key_values {
         table.insert("nan_val".into(), Value::Float(f64::NAN));
         table.insert("neg_inf_val".into(), Value::Float(f64::NEG_INFINITY));
         let s =
-            shiguredo_toml::to_string(&Value::Table(table)).expect("serialization should succeed");
+            shiguredo_toml::to_string(&Value::Table(table)).expect("シリアライズに成功するはず");
         insta::assert_snapshot!(s);
     }
 
@@ -50,7 +50,7 @@ mod simple_key_values {
         table.insert("b".into(), Value::Float(0.0));
         table.insert("c".into(), Value::Float(-0.0));
         let s =
-            shiguredo_toml::to_string(&Value::Table(table)).expect("serialization should succeed");
+            shiguredo_toml::to_string(&Value::Table(table)).expect("シリアライズに成功するはず");
         insta::assert_snapshot!(s);
     }
 }
@@ -66,7 +66,7 @@ mod sub_tables {
         let mut table = Table::new();
         table.insert("server".into(), Value::Table(inner));
         let s =
-            shiguredo_toml::to_string(&Value::Table(table)).expect("serialization should succeed");
+            shiguredo_toml::to_string(&Value::Table(table)).expect("シリアライズに成功するはず");
         insta::assert_snapshot!(s);
     }
 
@@ -80,7 +80,7 @@ mod sub_tables {
         let mut table = Table::new();
         table.insert("server".into(), Value::Table(server));
         let s =
-            shiguredo_toml::to_string(&Value::Table(table)).expect("serialization should succeed");
+            shiguredo_toml::to_string(&Value::Table(table)).expect("シリアライズに成功するはず");
         insta::assert_snapshot!(s);
     }
 
@@ -94,7 +94,7 @@ mod sub_tables {
         table.insert("database".into(), Value::Table(db));
         table.insert("server".into(), Value::Table(server));
         let s =
-            shiguredo_toml::to_string(&Value::Table(table)).expect("serialization should succeed");
+            shiguredo_toml::to_string(&Value::Table(table)).expect("シリアライズに成功するはず");
         insta::assert_snapshot!(s);
     }
 
@@ -107,7 +107,7 @@ mod sub_tables {
         table.insert("b".into(), Value::Integer(2));
         table.insert("sub".into(), Value::Table(sub));
         let s =
-            shiguredo_toml::to_string(&Value::Table(table)).expect("serialization should succeed");
+            shiguredo_toml::to_string(&Value::Table(table)).expect("シリアライズに成功するはず");
         insta::assert_snapshot!(s);
     }
 }
@@ -127,7 +127,7 @@ mod array_of_tables {
             Value::Array(vec![Value::Table(item1), Value::Table(item2)]),
         );
         let s =
-            shiguredo_toml::to_string(&Value::Table(table)).expect("serialization should succeed");
+            shiguredo_toml::to_string(&Value::Table(table)).expect("シリアライズに成功するはず");
         insta::assert_snapshot!(s);
     }
 
@@ -141,7 +141,7 @@ mod array_of_tables {
         let mut table = Table::new();
         table.insert("items".into(), Value::Array(vec![Value::Table(item)]));
         let s =
-            shiguredo_toml::to_string(&Value::Table(table)).expect("serialization should succeed");
+            shiguredo_toml::to_string(&Value::Table(table)).expect("シリアライズに成功するはず");
         insta::assert_snapshot!(s);
     }
 }
@@ -159,7 +159,7 @@ mod pretty_format {
         table.insert("a".into(), Value::Table(a));
         table.insert("b".into(), Value::Table(b));
         let s = shiguredo_toml::to_string_pretty(&Value::Table(table))
-            .expect("serialization should succeed");
+            .expect("シリアライズに成功するはず");
         insta::assert_snapshot!(s);
     }
 
@@ -171,7 +171,7 @@ mod pretty_format {
         table.insert("top".into(), Value::String("value".into()));
         table.insert("section".into(), Value::Table(sub));
         let s = shiguredo_toml::to_string_pretty(&Value::Table(table))
-            .expect("serialization should succeed");
+            .expect("シリアライズに成功するはず");
         insta::assert_snapshot!(s);
     }
 
@@ -187,7 +187,7 @@ mod pretty_format {
             Value::Array(vec![Value::Table(item1), Value::Table(item2)]),
         );
         let s = shiguredo_toml::to_string_pretty(&Value::Table(table))
-            .expect("serialization should succeed");
+            .expect("シリアライズに成功するはず");
         insta::assert_snapshot!(s);
     }
 }
@@ -205,7 +205,7 @@ mod key_quoting {
         table.insert("with-dash".into(), Value::Integer(5));
         table.insert("with_underscore".into(), Value::Integer(6));
         let s =
-            shiguredo_toml::to_string(&Value::Table(table)).expect("serialization should succeed");
+            shiguredo_toml::to_string(&Value::Table(table)).expect("シリアライズに成功するはず");
         insta::assert_snapshot!(s);
     }
 
@@ -216,7 +216,7 @@ mod key_quoting {
         let mut table = Table::new();
         table.insert("has space".into(), Value::Table(inner));
         let s =
-            shiguredo_toml::to_string(&Value::Table(table)).expect("serialization should succeed");
+            shiguredo_toml::to_string(&Value::Table(table)).expect("シリアライズに成功するはず");
         insta::assert_snapshot!(s);
     }
 }
@@ -232,7 +232,7 @@ mod string_escaping {
         table.insert("quotes".into(), Value::String("say \"hi\"".into()));
         table.insert("tab".into(), Value::String("a\tb".into()));
         let s =
-            shiguredo_toml::to_string(&Value::Table(table)).expect("serialization should succeed");
+            shiguredo_toml::to_string(&Value::Table(table)).expect("シリアライズに成功するはず");
         insta::assert_snapshot!(s);
     }
 
@@ -244,7 +244,7 @@ mod string_escaping {
         table.insert("cr".into(), Value::String("a\rb".into()));
         table.insert("null".into(), Value::String("a\u{0000}b".into()));
         let s =
-            shiguredo_toml::to_string(&Value::Table(table)).expect("serialization should succeed");
+            shiguredo_toml::to_string(&Value::Table(table)).expect("シリアライズに成功するはず");
         insta::assert_snapshot!(s);
     }
 }
@@ -280,7 +280,7 @@ mod inline_structures {
             ]),
         );
         let s =
-            shiguredo_toml::to_string(&Value::Table(table)).expect("serialization should succeed");
+            shiguredo_toml::to_string(&Value::Table(table)).expect("シリアライズに成功するはず");
         insta::assert_snapshot!(s);
     }
 
@@ -298,7 +298,7 @@ mod inline_structures {
         );
         table.insert("origin".into(), Value::Table(inner));
         let s =
-            shiguredo_toml::to_string(&Value::Table(table)).expect("serialization should succeed");
+            shiguredo_toml::to_string(&Value::Table(table)).expect("シリアライズに成功するはず");
         insta::assert_snapshot!(s);
     }
 }
@@ -386,7 +386,7 @@ mod datetime_output {
             }),
         );
         let s =
-            shiguredo_toml::to_string(&Value::Table(table)).expect("serialization should succeed");
+            shiguredo_toml::to_string(&Value::Table(table)).expect("シリアライズに成功するはず");
         insta::assert_snapshot!(s);
     }
 }

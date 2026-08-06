@@ -19,13 +19,13 @@ name = "beta"
 "#
         .trim_start();
 
-        let mut doc = Document::parse(input).expect("TOML should parse");
+        let mut doc = Document::parse(input).expect("TOML のパースに成功するはず");
         doc.set_path("version", Value::Integer(1))
-            .expect("edit should succeed");
+            .expect("編集に成功するはず");
         doc.set_path("server.timeout", Value::Integer(30))
-            .expect("edit should succeed");
+            .expect("編集に成功するはず");
         doc.set_path("items[1].priority", Value::Integer(5))
-            .expect("edit should succeed");
+            .expect("編集に成功するはず");
 
         insta::assert_snapshot!(doc.as_str());
     }
@@ -33,9 +33,9 @@ name = "beta"
     #[test]
     fn insert_into_inline_table() {
         let input = "config = { debug = true }\n";
-        let mut doc = Document::parse(input).expect("TOML should parse");
+        let mut doc = Document::parse(input).expect("TOML のパースに成功するはず");
         doc.set_path("config.verbose", Value::Boolean(false))
-            .expect("edit should succeed");
+            .expect("編集に成功するはず");
 
         insta::assert_snapshot!(doc.as_str());
     }
@@ -43,9 +43,9 @@ name = "beta"
     #[test]
     fn insert_into_section_with_trailing_blank_line() {
         let input = "[env]\nFOO = \"BAR\"\n\n[target.aarch64-unknown-linux-gnu]\n";
-        let mut doc = Document::parse(input).expect("TOML should parse");
+        let mut doc = Document::parse(input).expect("TOML のパースに成功するはず");
         doc.set_path("env.PIYO", Value::String("FUGA".to_owned()))
-            .expect("edit should succeed");
+            .expect("編集に成功するはず");
 
         insta::assert_snapshot!(doc.as_str());
     }
@@ -53,9 +53,9 @@ name = "beta"
     #[test]
     fn insert_into_section_with_trailing_whitespace_line() {
         let input = "[env]\nFOO = \"BAR\"\n  \n[target.aarch64-unknown-linux-gnu]\n";
-        let mut doc = Document::parse(input).expect("TOML should parse");
+        let mut doc = Document::parse(input).expect("TOML のパースに成功するはず");
         doc.set_path("env.PIYO", Value::String("FUGA".to_owned()))
-            .expect("edit should succeed");
+            .expect("編集に成功するはず");
 
         insta::assert_snapshot!(doc.as_str());
     }
@@ -63,9 +63,9 @@ name = "beta"
     #[test]
     fn insert_root_key_with_trailing_blank_line() {
         let input = "a = 1\n\n[server]\nport = 8080\n";
-        let mut doc = Document::parse(input).expect("TOML should parse");
+        let mut doc = Document::parse(input).expect("TOML のパースに成功するはず");
         doc.set_path("b", Value::Integer(2))
-            .expect("edit should succeed");
+            .expect("編集に成功するはず");
 
         insta::assert_snapshot!(doc.as_str());
     }
@@ -88,13 +88,13 @@ name = "beta" # second
 "#
         .trim_start();
 
-        let mut doc = Document::parse(input).expect("TOML should parse");
+        let mut doc = Document::parse(input).expect("TOML のパースに成功するはず");
         doc.set_path("port", Value::Integer(9090))
-            .expect("edit should succeed");
+            .expect("編集に成功するはず");
         doc.set_path("arr[1].nested", Value::Boolean(false))
-            .expect("edit should succeed");
+            .expect("編集に成功するはず");
         doc.set_path("servers[1].name", Value::String("gamma".to_owned()))
-            .expect("edit should succeed");
+            .expect("編集に成功するはず");
 
         insta::assert_snapshot!(doc.as_str());
     }
@@ -118,7 +118,7 @@ name = "beta" # second
 "#
         .trim_start();
 
-        let doc = Document::parse(input).expect("TOML should parse");
+        let doc = Document::parse(input).expect("TOML のパースに成功するはず");
 
         let snapshot = format!(
             "[value spans]\n{}\n\n[comment spans]\n{}",

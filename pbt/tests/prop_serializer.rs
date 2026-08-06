@@ -8,16 +8,16 @@ proptest! {
         key in bare_key_strategy(),
         value in safe_string_strategy(),
     ) {
-        let table = shiguredo_toml::from_str(&format!("{key} = \"\"")).expect("TOML should parse");
+        let table = shiguredo_toml::from_str(&format!("{key} = \"\"")).expect("TOML のパースに成功するはず");
         // まず空文字列をパースして構造確認
-        prop_assert!(table.get(&key).expect("key should exist").is_str());
+        prop_assert!(table.get(&key).expect("キーは存在するはず").is_str());
 
         // 実際の値を含むテーブルをプログラムで構築して直列化
         let mut table = shiguredo_toml::Table::new();
         table.insert(key.clone(), shiguredo_toml::Value::String(value.clone()));
-        let serialized = shiguredo_toml::to_string(&shiguredo_toml::Value::Table(table)).expect("serialization should succeed");
-        let parsed = shiguredo_toml::from_str(&serialized).expect("TOML should parse");
-        prop_assert_eq!(parsed.get(&key).expect("key should exist").as_str().expect("value should be a string"), &value);
+        let serialized = shiguredo_toml::to_string(&shiguredo_toml::Value::Table(table)).expect("シリアライズに成功するはず");
+        let parsed = shiguredo_toml::from_str(&serialized).expect("TOML のパースに成功するはず");
+        prop_assert_eq!(parsed.get(&key).expect("キーは存在するはず").as_str().expect("値は文字列になるはず"), &value);
     }
 
     /// 浮動小数点数のラウンドトリップ（有限値のみ）。
@@ -28,11 +28,11 @@ proptest! {
     ) {
         let mut table = shiguredo_toml::Table::new();
         table.insert(key.clone(), shiguredo_toml::Value::Float(f));
-        let serialized = shiguredo_toml::to_string(&shiguredo_toml::Value::Table(table)).expect("serialization should succeed");
-        let parsed = shiguredo_toml::from_str(&serialized).expect("TOML should parse");
-        let parsed_f = parsed.get(&key).expect("key should exist").as_float().expect("value should be a float");
+        let serialized = shiguredo_toml::to_string(&shiguredo_toml::Value::Table(table)).expect("シリアライズに成功するはず");
+        let parsed = shiguredo_toml::from_str(&serialized).expect("TOML のパースに成功するはず");
+        let parsed_f = parsed.get(&key).expect("キーは存在するはず").as_float().expect("値は浮動小数点数になるはず");
         prop_assert!((parsed_f - f).abs() < 1e-10 || parsed_f == f,
-            "Float mismatch: {f} -> {parsed_f}");
+            "浮動小数点数の不一致: {f} -> {parsed_f}");
     }
 
     /// Datetime のラウンドトリップ。
@@ -47,9 +47,9 @@ proptest! {
         }
         let mut table = shiguredo_toml::Table::new();
         table.insert(key.clone(), shiguredo_toml::Value::Datetime(dt.clone()));
-        let serialized = shiguredo_toml::to_string(&shiguredo_toml::Value::Table(table)).expect("serialization should succeed");
-        let parsed = shiguredo_toml::from_str(&serialized).expect("TOML should parse");
-        let parsed_dt = parsed.get(&key).expect("key should exist").as_datetime().expect("value should be a datetime");
+        let serialized = shiguredo_toml::to_string(&shiguredo_toml::Value::Table(table)).expect("シリアライズに成功するはず");
+        let parsed = shiguredo_toml::from_str(&serialized).expect("TOML のパースに成功するはず");
+        let parsed_dt = parsed.get(&key).expect("キーは存在するはず").as_datetime().expect("値は日時になるはず");
         prop_assert_eq!(&parsed_dt.date, &dt.date);
         match (&dt.time, &parsed_dt.time) {
             (Some(t1), Some(t2)) => {
@@ -59,7 +59,7 @@ proptest! {
                 prop_assert_eq!(t1.nanosecond, t2.nanosecond);
             }
             (None, None) => {}
-            _ => prop_assert!(false, "Time presence mismatch"),
+            _ => prop_assert!(false, "時刻の有無が一致しない"),
         }
         prop_assert_eq!(&parsed_dt.offset, &dt.offset);
     }
