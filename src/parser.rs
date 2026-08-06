@@ -521,8 +521,20 @@ impl<'a> Parser<'a> {
                         self.array_table_current_index
                             .insert(prefix_path.clone(), 0);
                     }
-                    // サブパスのテーブル状態をリセットする
+                    // サブパスのテーブル状態と配列テーブル状態をリセットする。
+                    // 配列テーブルへの参照は常に最後に定義された要素を指す
+                    // （TOML v1.0.0 / v1.1.0 仕様の「Array of Tables」節）ため、
+                    // 再オープンした新要素のスコープに前要素のサブパス定義を
+                    // 引き継がない。残存したパスは誤ったエラーや `internal error`
+                    // を引き起こす。配列テーブルへの参照規則は将来の仕様変更で
+                    // 変わり得る。
                     self.table_states
+                        .retain(|k, _| !(k.len() > path.len() && k.starts_with(&path)));
+                    self.array_table_paths
+                        .retain(|k| !(k.len() > path.len() && k.starts_with(&path)));
+                    // array_table_current_index のキー集合は array_table_paths と
+                    // 常に一致するため、同じ条件で retain して同期を保つ。
+                    self.array_table_current_index
                         .retain(|k, _| !(k.len() > path.len() && k.starts_with(&path)));
                 } else {
                     if let Some(existing) = table.get(part) {
