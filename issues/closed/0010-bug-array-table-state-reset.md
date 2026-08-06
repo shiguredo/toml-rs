@@ -1,7 +1,7 @@
 # 配列テーブルを再オープン後にサブテーブルを定義すると valid TOML が拒否される
 
 - Created: 2026-08-06
-- Completed: {YYYY-MM-DD}
+- Completed: 2026-08-06
 - Branch: feature/fix-array-table-state-reset
 - Polished: 2026-08-06
 
@@ -59,12 +59,12 @@ w = 1
 
 ## 解決方法
 
-- 修正: `Parser::handle_array_table` の `table_states.retain` と同じ条件で `array_table_paths` / `array_table_current_index` も `retain` する
-- テスト: `tests/test_parser.rs` に以下を追加する（テスト 1〜3 は修正前はエラーになるが、修正後はパース成功する）
-  1. `[[a]]` → `[a.b]` → `[[a.b.c]]` → `[a.b.c.d]` → `w = 1` → `[[a]]` → `[a.b.c.d]`（再現入力。修正前は `internal error: array table 'c' not found`）。パース結果として `a` が 2 要素になり、2 番目の要素配下に `b.c.d` が標準テーブルとして定義されることも検証する
-  2. `[[a]]` → `[a.b]` → `[[a.b.c]]` → `[a.b.c.d]` → `w = 1` → `[[a]]` → `[a.b.c]`（同根ケース。修正前は `'a.b.c' is defined as an array table and cannot be a standard table`）。パース結果として 2 番目の要素配下の `b.c` が標準テーブル（配列ではない）になることも検証する
-  3. `[[a]]` → `[[a.b]]` → `w = 1` → `[[a]]` → `[[a.b.c]]` → `z = 1`（前要素に `[[a.b]]` が定義済みの構成で、新要素配下に配列テーブルを新規定義。修正前は `internal error: array table 'b' not found`）。パース結果として 2 番目の要素配下の `b` が標準テーブル、`b.c` が配列テーブルとして新規作成されることも検証する
-  4. `[[a]]` → `[[a.b]]` → `w = 1` → `[[a]]` → `[[a.b]]` → `x = 1`（前要素と同じ配列テーブル名を再度 `[[...]]` で定義。修正前からパース成功する仕様準拠の回帰テストであり、修正の効果の検証ではない。新要素では未定義扱いになり、新規の配列として作成されることの確認）。パース結果として 2 番目の要素配下の `b` が前要素とは別の新規配列になることも検証する
-  5. `[[a]]` → `[[a.b]]` → `w = 1` → `[[a]]` → `[a.b.c]`（現状の「前要素の構成によっては」で述べたバリアント。修正前は `internal error: array table 'b' not found`）。パース結果として 2 番目の要素配下の `b.c` が標準テーブルとして定義されることも検証する
-  6. 上記 1〜5 を TomlVersion::V1_1 でも検証
+- 修正: `Parser::handle_array_table`（src/parser.rs）の `table_states.retain` と同じ条件（`k.len() > path.len() && k.starts_with(&path)`）で `array_table_paths` / `array_table_current_index` も `retain` する。新要素のスコープで前要素のサブパス定義を引き継がないことで、stale なパスによる誤ったエラーや `internal error` の発火を防ぐ
+- テスト: `tests/test_parser.rs` の `array_table_state_reset` モジュールに以下を追加する（各テストは TomlVersion::V1_0 / V1_1 の両方で検証する）
+  1. `subtable_under_new_element_after_reopen`（再現入力。修正前は `internal error: array table 'c' not found`）。`a` が 2 要素になり、2 番目の要素配下に `b.c.d` が標準テーブルとして定義されること、前要素の `w = 1` が引き継がれないことを検証
+  2. `standard_table_replacing_previous_array_table`（同根ケース。修正前は `'a.b.c' is defined as an array table and cannot be a standard table`）。2 番目の要素配下の `b.c` が標準テーブル（配列ではない）になること、前要素の `d.w` が引き継がれないことを検証
+  3. `new_array_table_under_reopened_element`（前要素に `[[a.b]]` が定義済みの構成で新要素配下に配列テーブルを新規定義。修正前は `internal error: array table 'b' not found`）。2 番目の要素配下の `b` が標準テーブル、`b.c` が配列テーブルとして新規作成されることを検証
+  4. `same_array_table_name_under_new_element`（回帰テスト。修正前からパース成功する仕様準拠の挙動）。2 番目の要素配下の `b` が前要素とは別の新規配列になることを検証
+  5. `standard_table_using_previous_array_table_as_parent`（バリアント。修正前は `internal error: array table 'b' not found`）。2 番目の要素配下の `b.c` が標準テーブルとして定義されることを検証
+  6. `nested_array_table_reopen`（中段の配列テーブル `[[a.b]]` の再オープン。レビューで追加）。1 番目の要素の `b.c` が配列テーブルのまま、2 番目の要素の `b.c` が標準テーブルになることを検証
 - `CHANGES.md` に `[FIX]` エントリを追加する

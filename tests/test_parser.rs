@@ -708,6 +708,300 @@ mod v1_1 {
     }
 }
 
+mod array_table_state_reset {
+    use shiguredo_toml::{TomlVersion, from_str_with_version};
+
+    /// 再現入力: 前要素で定義した配列テーブルのサブパスが残存しても、
+    /// 新要素配下の標準テーブル定義が成功する。
+    ///
+    /// 新要素配下のヘッダ `[a.b.c.d]` が残存パス `a.b.c` を途中パスとして
+    /// 経由する点が特徴で、修正前は `internal error: array table 'c' not found`
+    /// で拒否されていた。
+    ///
+    /// TOML v1.0.0 / v1.1.0 仕様の「Array of Tables」節: 配列テーブルへの参照は
+    /// 常に最後に定義された要素を指すため、再オープン後の新要素配下に
+    /// サブテーブルを定義できる。
+    #[test]
+    fn subtable_under_new_element_after_reopen() {
+        let input = "[[a]]\n[a.b]\n[[a.b.c]]\n[a.b.c.d]\nw = 1\n[[a]]\n[a.b.c.d]\n";
+        for version in [TomlVersion::V1_0, TomlVersion::V1_1] {
+            let Ok(t) = from_str_with_version(input, version) else {
+                panic!("TOML should parse as {version:?}");
+            };
+            let a = t["a"].as_array().expect("value should be an array");
+            assert_eq!(a.len(), 2);
+            // 1 番目の要素の b.c は配列テーブルで、その要素配下に d = { w = 1 } が定義される
+            let first = a[0].as_table().expect("value should be a table");
+            let first_c = first["b"]["c"]
+                .as_array()
+                .expect("value should be an array");
+            assert_eq!(first_c.len(), 1);
+            assert_eq!(
+                first_c[0].as_table().expect("value should be a table")["d"]["w"]
+                    .as_integer()
+                    .expect("value should be an integer"),
+                1
+            );
+            // 2 番目の要素配下の b.c と b.c.d が標準テーブルとして定義される
+            let second = a[1].as_table().expect("value should be a table");
+            assert!(
+                second["b"]["c"].as_table().is_some(),
+                "b.c should be a standard table"
+            );
+            assert!(
+                second["b"]["c"].as_array().is_none(),
+                "b.c should not be an array"
+            );
+            assert!(
+                second["b"]["c"]["d"].as_table().is_some(),
+                "b.c.d should be a standard table"
+            );
+            // 新要素には前要素の w = 1 が引き継がれない
+            assert!(
+                second["b"]["c"]["d"].get("w").is_none(),
+                "new element should not inherit the previous element"
+            );
+        }
+    }
+
+    /// 同根ケース: 前要素で配列テーブルだった名前を、新要素配下で
+    /// 標準テーブルとして再定義できる。
+    ///
+    /// 再現入力との違いは、新要素配下のヘッダが `[a.b.c]`（残存パスが
+    /// 終端に来る）である点。修正前は残存パスにより
+    /// `'a.b.c' is defined as an array table and cannot be a standard table`
+    /// で拒否されていた。
+    ///
+    /// TOML v1.0.0 / v1.1.0 仕様の「Array of Tables」節: 配列テーブルへの参照は
+    /// 常に最後に定義された要素を指す。新要素配下では前要素のサブパスは
+    /// 未定義扱いになるため、前要素で配列テーブルだった名前を
+    /// 標準テーブルとして定義できる。
+    #[test]
+    fn standard_table_replacing_previous_array_table() {
+        let input = "[[a]]\n[a.b]\n[[a.b.c]]\n[a.b.c.d]\nw = 1\n[[a]]\n[a.b.c]\n";
+        for version in [TomlVersion::V1_0, TomlVersion::V1_1] {
+            let Ok(t) = from_str_with_version(input, version) else {
+                panic!("TOML should parse as {version:?}");
+            };
+            let a = t["a"].as_array().expect("value should be an array");
+            assert_eq!(a.len(), 2);
+            // 1 番目の要素の b.c は配列テーブルのまま w = 1 を保持する
+            let first = a[0].as_table().expect("value should be a table");
+            let first_c = first["b"]["c"]
+                .as_array()
+                .expect("value should be an array");
+            assert_eq!(
+                first_c[0].as_table().expect("value should be a table")["d"]["w"]
+                    .as_integer()
+                    .expect("value should be an integer"),
+                1
+            );
+            // 2 番目の要素配下の b.c が標準テーブル（配列ではない）になる
+            let second = a[1].as_table().expect("value should be a table");
+            assert!(
+                second["b"]["c"].as_table().is_some(),
+                "b.c should be a standard table"
+            );
+            assert!(
+                second["b"]["c"].as_array().is_none(),
+                "b.c should not be an array"
+            );
+            // 新要素には前要素の d.w = 1 が引き継がれない
+            assert!(
+                second["b"]["c"].get("d").is_none(),
+                "new element should not inherit the previous element"
+            );
+        }
+    }
+
+    /// 前要素で配列テーブルが定義されていた途中パスを、新要素配下で
+    /// 標準テーブルとして作成し直した上で配列テーブルを新規定義できる。
+    ///
+    /// TOML v1.0.0 / v1.1.0 仕様の「Array of Tables」節: 配列テーブルへの参照は
+    /// 常に最後に定義された要素を指す。新要素配下では前要素のサブパスは
+    /// 未定義扱いになるため、途中パスを標準テーブルとして作成し直した上で
+    /// 配列テーブルを新規定義できる。
+    #[test]
+    fn new_array_table_under_reopened_element() {
+        let input = "[[a]]\n[[a.b]]\nw = 1\n[[a]]\n[[a.b.c]]\nz = 1\n";
+        for version in [TomlVersion::V1_0, TomlVersion::V1_1] {
+            let Ok(t) = from_str_with_version(input, version) else {
+                panic!("TOML should parse as {version:?}");
+            };
+            let a = t["a"].as_array().expect("value should be an array");
+            assert_eq!(a.len(), 2);
+            // 1 番目の要素の b は配列テーブルのまま w = 1 を保持する
+            let first = a[0].as_table().expect("value should be a table");
+            let first_b = first["b"].as_array().expect("value should be an array");
+            assert_eq!(
+                first_b[0].as_table().expect("value should be a table")["w"]
+                    .as_integer()
+                    .expect("value should be an integer"),
+                1
+            );
+            let second = a[1].as_table().expect("value should be a table");
+            // 2 番目の要素配下の b は標準テーブルとして新規作成される
+            assert!(
+                second["b"].as_table().is_some(),
+                "b should be a standard table"
+            );
+            assert!(second["b"].as_array().is_none(), "b should not be an array");
+            // b.c は配列テーブルとして新規作成される
+            let bc = second["b"]["c"]
+                .as_array()
+                .expect("value should be an array");
+            assert_eq!(bc.len(), 1);
+            assert_eq!(
+                bc[0].as_table().expect("value should be a table")["z"]
+                    .as_integer()
+                    .expect("value should be an integer"),
+                1
+            );
+            // 新要素には前要素の w = 1 が引き継がれない
+            assert!(
+                second["b"].get("w").is_none(),
+                "new element should not inherit the previous element"
+            );
+        }
+    }
+
+    /// 回帰テスト: 新要素配下で前要素と同じ配列テーブル名を再定義すると、
+    /// 前要素とは別の新規配列が作成される（仕様準拠の既存挙動）。
+    ///
+    /// TOML v1.0.0 / v1.1.0 仕様の「Array of Tables」節: ヘッダの再出現は
+    /// 新要素を生成し、参照は常に最後に定義された要素を指す。新要素配下では
+    /// 前要素と同じ配列テーブル名は未定義扱いになるため、別の新規配列として
+    /// 作成される。
+    #[test]
+    fn same_array_table_name_under_new_element() {
+        let input = "[[a]]\n[[a.b]]\nw = 1\n[[a]]\n[[a.b]]\nx = 1\n";
+        for version in [TomlVersion::V1_0, TomlVersion::V1_1] {
+            let Ok(t) = from_str_with_version(input, version) else {
+                panic!("TOML should parse as {version:?}");
+            };
+            let a = t["a"].as_array().expect("value should be an array");
+            assert_eq!(a.len(), 2);
+            // 1 番目の要素の b は w = 1 を持つ配列
+            let first_b = a[0].as_table().expect("value should be a table")["b"]
+                .as_array()
+                .expect("value should be an array");
+            assert_eq!(first_b.len(), 1);
+            let first_b_element = first_b[0].as_table().expect("value should be a table");
+            assert_eq!(
+                first_b_element["w"]
+                    .as_integer()
+                    .expect("value should be an integer"),
+                1
+            );
+            // 1 番目の要素には 2 番目の要素の x = 1 が混入しない
+            assert!(
+                first_b_element.get("x").is_none(),
+                "first element should not inherit the second element"
+            );
+            // 2 番目の要素の b は前要素とは別の新規配列で、x = 1 を持つ
+            let second_b = a[1].as_table().expect("value should be a table")["b"]
+                .as_array()
+                .expect("value should be an array");
+            assert_eq!(second_b.len(), 1);
+            let second_b_element = second_b[0].as_table().expect("value should be a table");
+            assert_eq!(
+                second_b_element["x"]
+                    .as_integer()
+                    .expect("value should be an integer"),
+                1
+            );
+            assert!(
+                second_b_element.get("w").is_none(),
+                "new element should not inherit the previous element"
+            );
+        }
+    }
+
+    /// 前要素で配列テーブルが定義されていた途中パスを、新要素配下で
+    /// 標準テーブルの親パスとして使える。
+    ///
+    /// TOML v1.0.0 / v1.1.0 仕様の「Array of Tables」節: 配列テーブルへの参照は
+    /// 常に最後に定義された要素を指す。新要素配下では前要素のサブパスは
+    /// 未定義扱いになるため、標準テーブルの親パスとして使える。
+    #[test]
+    fn standard_table_using_previous_array_table_as_parent() {
+        let input = "[[a]]\n[[a.b]]\nw = 1\n[[a]]\n[a.b.c]\n";
+        for version in [TomlVersion::V1_0, TomlVersion::V1_1] {
+            let Ok(t) = from_str_with_version(input, version) else {
+                panic!("TOML should parse as {version:?}");
+            };
+            let a = t["a"].as_array().expect("value should be an array");
+            assert_eq!(a.len(), 2);
+            // 1 番目の要素の b は配列テーブルのまま w = 1 を保持する
+            let first_b = a[0].as_table().expect("value should be a table")["b"]
+                .as_array()
+                .expect("value should be an array");
+            assert_eq!(first_b.len(), 1);
+            assert_eq!(
+                first_b[0].as_table().expect("value should be a table")["w"]
+                    .as_integer()
+                    .expect("value should be an integer"),
+                1
+            );
+            // 1 番目の要素には新要素の定義が混入しない
+            assert!(
+                first_b[0]
+                    .as_table()
+                    .expect("value should be a table")
+                    .get("c")
+                    .is_none(),
+                "first element should not inherit the second element"
+            );
+            // 2 番目の要素配下の b.c が標準テーブルとして定義される
+            let second = a[1].as_table().expect("value should be a table");
+            assert!(
+                second["b"]["c"].as_table().is_some(),
+                "b.c should be a standard table"
+            );
+            assert!(
+                second["b"]["c"].as_array().is_none(),
+                "b.c should not be an array"
+            );
+        }
+    }
+
+    /// 中段の配列テーブル（`[[a.b]]`）を再オープンした場合も、新要素配下の
+    /// サブテーブル定義が成功する。
+    ///
+    /// TOML v1.0.0 / v1.1.0 仕様の「Array of Tables」節: 配列テーブルへの参照は
+    /// 常に最後に定義された要素を指す。ネストの深さに関わらず同じ規則が
+    /// 適用される。
+    #[test]
+    fn nested_array_table_reopen() {
+        let input = "[[a]]\n[[a.b]]\n[[a.b.c]]\n[[a.b]]\n[a.b.c]\n";
+        for version in [TomlVersion::V1_0, TomlVersion::V1_1] {
+            let Ok(t) = from_str_with_version(input, version) else {
+                panic!("TOML should parse as {version:?}");
+            };
+            let a = t["a"].as_array().expect("value should be an array");
+            assert_eq!(a.len(), 1);
+            let b = a[0].as_table().expect("value should be a table")["b"]
+                .as_array()
+                .expect("value should be an array");
+            assert_eq!(b.len(), 2);
+            // 1 番目の要素の b.c は配列テーブルのまま（要素数 1）
+            let first_b = b[0].as_table().expect("value should be a table");
+            let first_c = first_b["c"].as_array().expect("value should be an array");
+            assert_eq!(first_c.len(), 1);
+            // 2 番目の要素配下の b.c が標準テーブルとして定義される
+            let second_b = b[1].as_table().expect("value should be a table");
+            assert!(
+                second_b["c"].as_table().is_some(),
+                "b.c should be a standard table"
+            );
+            assert!(
+                second_b["c"].as_array().is_none(),
+                "b.c should not be an array"
+            );
+        }
+    }
+}
+
 mod bom {
     /// 先頭 BOM の直後に改行がある場合にパース成功する。
     /// toml-test の valid/utf8-bom-01 相当。
