@@ -135,6 +135,187 @@ mod parse_error {
     }
 }
 
+mod datetime_validate {
+    use super::*;
+
+    #[test]
+    fn year_10000_is_invalid() {
+        let d = Date {
+            year: 10000,
+            month: 1,
+            day: 1,
+        };
+        assert!(d.validate().is_err());
+    }
+
+    #[test]
+    fn year_9999_is_valid() {
+        let d = Date {
+            year: 9999,
+            month: 1,
+            day: 1,
+        };
+        assert!(d.validate().is_ok());
+    }
+
+    #[test]
+    fn missing_date_and_time_is_invalid() {
+        let dt = Datetime {
+            date: None,
+            time: None,
+            offset: None,
+        };
+        assert!(dt.validate().is_err());
+    }
+
+    #[test]
+    fn missing_date_and_time_with_offset_is_invalid() {
+        let dt = Datetime {
+            date: None,
+            time: None,
+            offset: Some(Offset::Z),
+        };
+        assert!(dt.validate().is_err());
+    }
+
+    #[test]
+    fn date_only_with_offset_is_invalid() {
+        let dt = Datetime {
+            date: Some(Date {
+                year: 2024,
+                month: 1,
+                day: 1,
+            }),
+            time: None,
+            offset: Some(Offset::Z),
+        };
+        assert!(dt.validate().is_err());
+    }
+
+    #[test]
+    fn time_only_with_offset_is_invalid() {
+        let dt = Datetime {
+            date: None,
+            time: Some(Time {
+                hour: 1,
+                minute: 2,
+                second: 3,
+                nanosecond: 0,
+            }),
+            offset: Some(Offset::Z),
+        };
+        assert!(dt.validate().is_err());
+    }
+
+    #[test]
+    fn four_variants_are_valid() {
+        let date = Some(Date {
+            year: 2024,
+            month: 1,
+            day: 1,
+        });
+        let time = Some(Time {
+            hour: 1,
+            minute: 2,
+            second: 3,
+            nanosecond: 0,
+        });
+
+        // Offset Date-Time
+        let dt = Datetime {
+            date: date.clone(),
+            time: time.clone(),
+            offset: Some(Offset::Z),
+        };
+        assert!(dt.validate().is_ok());
+
+        // Local Date-Time
+        let dt = Datetime {
+            date: date.clone(),
+            time: time.clone(),
+            offset: None,
+        };
+        assert!(dt.validate().is_ok());
+
+        // Local Date
+        let dt = Datetime {
+            date: date.clone(),
+            time: None,
+            offset: None,
+        };
+        assert!(dt.validate().is_ok());
+
+        // Local Time
+        let dt = Datetime {
+            date: None,
+            time: time.clone(),
+            offset: None,
+        };
+        assert!(dt.validate().is_ok());
+    }
+
+    #[test]
+    fn invalid_month_field_is_rejected() {
+        // 範囲外の月は Datetime::validate でも弾かれる
+        let dt = Datetime {
+            date: Some(Date {
+                year: 2024,
+                month: 13,
+                day: 1,
+            }),
+            time: None,
+            offset: None,
+        };
+        assert!(dt.validate().is_err());
+    }
+
+    #[test]
+    fn invalid_nanosecond_field_is_rejected() {
+        // 範囲外のナノ秒は Datetime::validate でも弾かれる
+        let dt = Datetime {
+            date: None,
+            time: Some(Time {
+                hour: 1,
+                minute: 2,
+                second: 3,
+                nanosecond: 1_000_000_000,
+            }),
+            offset: None,
+        };
+        assert!(dt.validate().is_err());
+    }
+
+    #[test]
+    fn missing_date_and_time_error_message() {
+        let dt = Datetime {
+            date: None,
+            time: None,
+            offset: None,
+        };
+        let error = dt.validate().expect_err("validate should fail");
+        let message = match error {
+            shiguredo_toml::Error::Validate { message } => message,
+            other => panic!("expected Error::Validate, got {other:?}"),
+        };
+        assert!(message.contains("date or a time"));
+    }
+
+    #[test]
+    fn offset_without_date_or_time_error_message() {
+        let dt = Datetime {
+            date: None,
+            time: None,
+            offset: Some(Offset::Z),
+        };
+        let error = dt.validate().expect_err("validate should fail");
+        let message = match error {
+            shiguredo_toml::Error::Validate { message } => message,
+            other => panic!("expected Error::Validate, got {other:?}"),
+        };
+        assert!(message.contains("both a date and a time"));
+    }
+}
+
 mod parse_str {
     use super::*;
 

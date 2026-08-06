@@ -537,3 +537,86 @@ mod insert_auto_create {
         assert!(result.is_err());
     }
 }
+
+mod datetime_validate {
+    use super::*;
+    use shiguredo_toml::{Datetime, Offset};
+
+    /// 無効な Datetime（4 バリアントに該当しない組み合わせ）。
+    fn invalid_datetime() -> Datetime {
+        Datetime {
+            date: None,
+            time: None,
+            offset: Some(Offset::Z),
+        }
+    }
+
+    /// エラーが Error::Serialize であることを検証する。
+    fn assert_serialize_error(result: Result<(), shiguredo_toml::Error>) {
+        assert!(
+            matches!(result, Err(shiguredo_toml::Error::Serialize { .. })),
+            "expected Error::Serialize"
+        );
+    }
+
+    /// 既存キーの置換で無効な Datetime を渡すと Err になり、
+    /// ドキュメントの内容が変化しない。
+    #[test]
+    fn replace_existing_key_returns_error_and_keeps_source() {
+        let input = "port = 8080\n";
+        let mut doc = Document::parse(input).expect("TOML should parse");
+
+        let result = doc.set_path("port", Value::Datetime(invalid_datetime()));
+        assert_serialize_error(result);
+        assert_eq!(doc.as_str(), input);
+    }
+
+    /// `set`（PathSegment 版）で既存キーの置換に無効な Datetime を渡すと
+    /// Err になり、ドキュメントの内容が変化しない。
+    #[test]
+    fn set_with_path_segments_returns_error_and_keeps_source() {
+        let input = "port = 8080\n";
+        let mut doc = Document::parse(input).expect("TOML should parse");
+
+        let path = parse_value_path("port").expect("path should parse");
+        let result = doc.set(&path, Value::Datetime(invalid_datetime()));
+        assert_serialize_error(result);
+        assert_eq!(doc.as_str(), input);
+    }
+
+    /// 新規キーの挿入で無効な Datetime を渡すと Err になり、
+    /// ドキュメントの内容が変化しない。
+    #[test]
+    fn insert_new_key_returns_error_and_keeps_source() {
+        let input = "a = 1\n";
+        let mut doc = Document::parse(input).expect("TOML should parse");
+
+        let result = doc.set_path("b", Value::Datetime(invalid_datetime()));
+        assert_serialize_error(result);
+        assert_eq!(doc.as_str(), input);
+    }
+
+    /// インラインテーブルへの挿入で無効な Datetime を渡すと Err になり、
+    /// ドキュメントの内容が変化しない。
+    #[test]
+    fn insert_into_inline_table_returns_error_and_keeps_source() {
+        let input = "obj = { a = 1 }\n";
+        let mut doc = Document::parse(input).expect("TOML should parse");
+
+        let result = doc.set_path("obj.b", Value::Datetime(invalid_datetime()));
+        assert_serialize_error(result);
+        assert_eq!(doc.as_str(), input);
+    }
+
+    /// セクションの自動生成を伴う挿入で無効な Datetime を渡すと Err になり、
+    /// ドキュメントの内容が変化しない。
+    #[test]
+    fn insert_with_new_section_returns_error_and_keeps_source() {
+        let input = "a = 1\n";
+        let mut doc = Document::parse(input).expect("TOML should parse");
+
+        let result = doc.set_path("new.key", Value::Datetime(invalid_datetime()));
+        assert_serialize_error(result);
+        assert_eq!(doc.as_str(), input);
+    }
+}

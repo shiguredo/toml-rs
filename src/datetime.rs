@@ -83,6 +83,13 @@ fn days_in_month(year: u16, month: u8) -> u8 {
 impl Date {
     /// 日付を検証する。
     pub fn validate(&self) -> Result<(), Error> {
+        // RFC 3339 section 5.6 の date-fullyear は 4DIGIT (0000-9999) である。
+        // TOML v1.0.0 仕様は日時表現を RFC 3339 に委譲しているため、
+        // 4 桁を超える年は TOML の日時として表現できない。
+        // 将来仕様変更によりこの制約は変わり得る。
+        if self.year > 9999 {
+            return Err(Error::validate(format!("year out of range: {}", self.year)));
+        }
         if self.month < 1 || self.month > 12 {
             return Err(Error::validate(format!(
                 "month out of range: {}",
@@ -146,6 +153,51 @@ impl Offset {
     }
 }
 
+impl Datetime {
+    /// 日時を検証する。
+    ///
+    /// 各フィールドの検証に加えて、TOML v1.0.0 仕様の日時に関する
+    /// 4 節（Offset Date-Time / Local Date-Time / Local Date / Local Time）に
+    /// 該当しない組み合わせを拒否する。組み合わせの制約は TOML v1.1.0 でも
+    /// 同一である。将来仕様変更によりこの制約は変わり得る。
+    pub fn validate(&self) -> Result<(), Error> {
+        if let Some(date) = &self.date {
+            date.validate()?;
+        }
+        if let Some(time) = &self.time {
+            time.validate()?;
+        }
+        if let Some(offset) = &self.offset {
+            offset.validate()?;
+        }
+
+        match (&self.date, &self.time, &self.offset) {
+            // Offset Date-Time
+            (Some(_), Some(_), Some(_)) => Ok(()),
+            // Local Date-Time
+            (Some(_), Some(_), None) => Ok(()),
+            // Local Date
+            (Some(_), None, None) => Ok(()),
+            // Local Time
+            (None, Some(_), None) => Ok(()),
+            // date と time の両方が無い組み合わせ
+            (None, None, None) => Err(Error::validate("datetime requires either a date or a time")),
+            // offset があるのに date と time の両方が無い組み合わせ
+            (None, None, Some(_)) => Err(Error::validate(
+                "offset datetime requires both a date and a time",
+            )),
+            // offset があるのに time が欠けた組み合わせ
+            (Some(_), None, Some(_)) => Err(Error::validate(
+                "offset datetime requires both a date and a time",
+            )),
+            // offset があるのに date が欠けた組み合わせ
+            (None, Some(_), Some(_)) => Err(Error::validate(
+                "offset datetime requires both a date and a time",
+            )),
+        }
+    }
+}
+
 impl fmt::Display for Date {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:04}-{:02}-{:02}", self.year, self.month, self.day)
@@ -181,6 +233,12 @@ impl fmt::Display for Offset {
 }
 
 impl fmt::Display for Datetime {
+    /// 日時を文字列化する。
+    ///
+    /// 検証は行わない。無効な組み合わせは空文字や情報欠落した表現になる
+    /// ため、シリアライズには `Value::Datetime` で包んで
+    /// `shiguredo_toml::to_string` / `to_inline_string` / `to_string_pretty` を
+    /// 使うこと（シリアライズ経路では検証される）。`Display` は検証しない。
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match (&self.date, &self.time, &self.offset) {
             (Some(d), Some(t), Some(o)) => write!(f, "{d}T{t}{o}"),
