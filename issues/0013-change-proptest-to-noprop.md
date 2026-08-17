@@ -1,7 +1,7 @@
 # PBT の依存を proptest から noprop に切り替える
 
 - Created: 2026-08-17
-- Completed: {YYYY-MM-DD}
+- Completed: 2026-08-17
 - Branch: feature/change-proptest-to-noprop
 - Polished: 2026-08-17
 
@@ -43,13 +43,11 @@
 
 ## 解決方法
 
-- `pbt/Cargo.toml` の依存を `proptest` から `noprop` に差し替える
-- `pbt/src/lib.rs` の Strategy 群を、`noprop` の `&mut TestCaseContext` と `sample_*` を受け取る生成関数へ書き換える
-  - 日付の日数上限や Datetime バリアント選択など、以前 `prop_flat_map` / `prop_oneof!` で表現していた依存関係は通常の制御フローで書く
-  - 再帰的な `Value` 生成は深さ・サイズ上限を明示した関数で書く（`prop_recursive` の代替）
-- 各 `prop_*.rs` を `#[test] fn ... -> noprop::TestResult` + `Runner::new(seed).run(...)` 形式に書き換える
-  - `prop_assert*` は通常の `assert!` / `assert_eq!` に置き換える
-  - `prop_assume!` に相当する棄却は `noprop` の rejection 手段（または生成側で無効ケースを出さない）で扱う
-- `skills/shiguredo-toml/SKILL.md` の `proptest` 記述を `noprop` に更新する
-- `CHANGES.md` に切り替えのエントリを追記する（種別は `shiguredo-changelog` スキルに従う）
-- `cargo test -p pbt` で全 PBT が通ることを確認する
+- 変更: `pbt/Cargo.toml` の依存を `proptest = "1.11"` から `noprop = "0.2"` に差し替える。`Cargo.lock` から `proptest` とその推移的依存（`rand` / `rusty-fork` / `bit-set` 等）が除去された
+- 変更: `pbt/src/lib.rs` の 8 つの Strategy 群を、`&mut noprop::TestCaseContext` を受け取る `sample_*` 関数（`sample_bare_key` / `sample_date` / `sample_time` / `sample_offset` / `sample_datetime` / `sample_safe_string` / `sample_value` / `sample_table`）に書き換える
+  - 日付の月別日数上限（うるう年対応）や Datetime の 4 バリアント選択は、以前 `prop_flat_map` / `prop_oneof!` で表現していた依存関係を通常の制御フローで実装する
+  - 再帰的な `Value` 生成は深さ上限 3 を明示した `sample_value_recursive` で実装する（`prop_recursive` の代替）
+- 変更: 5 つの `pbt/tests/prop_*.rs` を `#[test] fn ... -> noprop::TestResult` + `Runner::new(seed).run(256, ...)` 形式に書き換える。`prop_assert*` は `assert!` / `assert_eq!` に、`prop_assume!` は生成側の制約（`sample_key_pair` による既存キーと新規キーの不一致保証）に置き換える。シードは全テストで `noprop::seed_from_env_or_time("NOPROP_SEED")` を使い、ケース数は 256 に統一する（`empty_table_roundtrip` は決定的検証のため 1 ケース）
+- 変更: `skills/shiguredo-toml/SKILL.md` の `pbt/` の説明を `noprop` による検証に更新する
+- 変更: `CHANGES.md` の `## develop` に `[CHANGE]` エントリを追加し、陳腐化した misc の「proptest を 1.11 に更新する」エントリを削除する
+- テスト: 既存の PBT 20 テスト（ラウンドトリップ、パース不変条件、Datetime の妥当性、編集後の一貫性）をすべて noprop 形式に書き換え、`cargo test -p pbt` / `cargo test --workspace` / `cargo clippy --workspace --all-targets -- -D warnings` で全通過を確認する
