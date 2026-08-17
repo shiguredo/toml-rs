@@ -1,89 +1,137 @@
-use pbt::{date_strategy, datetime_strategy, offset_strategy, time_strategy};
-use proptest::prelude::*;
+use pbt::{sample_date, sample_datetime, sample_offset, sample_time};
 use shiguredo_toml::{Datetime, Offset};
 
-proptest! {
-    /// Date の Display -> FromStr ラウンドトリップ。
-    #[test]
-    fn date_roundtrip(date in date_strategy()) {
+/// Date の Display -> FromStr ラウンドトリップ。
+#[test]
+fn date_roundtrip() -> noprop::TestResult {
+    let seed = noprop::seed_from_env_or_time("NOPROP_SEED")?;
+    let mut runner = noprop::Runner::new(seed);
+    runner.run(256, |ctx| {
+        let date = sample_date(ctx);
         let s = date.to_string();
         let parsed: Datetime = s.parse().expect("入力のパースに成功するはず");
-        prop_assert_eq!(parsed.date.as_ref(), Some(&date));
-        prop_assert!(parsed.time.is_none());
-        prop_assert!(parsed.offset.is_none());
-    }
+        assert_eq!(parsed.date.as_ref(), Some(&date), "日付が一致すること");
+        assert!(parsed.time.is_none(), "時刻は無いこと");
+        assert!(parsed.offset.is_none(), "オフセットは無いこと");
+        Ok(())
+    })?;
+    Ok(())
+}
 
-    /// Time の Display -> FromStr ラウンドトリップ。
-    #[test]
-    fn time_roundtrip(time in time_strategy()) {
+/// Time の Display -> FromStr ラウンドトリップ。
+#[test]
+fn time_roundtrip() -> noprop::TestResult {
+    let seed = noprop::seed_from_env_or_time("NOPROP_SEED")?;
+    let mut runner = noprop::Runner::new(seed);
+    runner.run(256, |ctx| {
+        let time = sample_time(ctx);
         let s = time.to_string();
         let parsed: Datetime = s.parse().expect("入力のパースに成功するはず");
-        prop_assert!(parsed.date.is_none());
+        assert!(parsed.date.is_none(), "日付は無いこと");
         let parsed_time = parsed.time.as_ref().expect("フィールドは設定されるはず");
-        prop_assert_eq!(parsed_time.hour, time.hour);
-        prop_assert_eq!(parsed_time.minute, time.minute);
-        prop_assert_eq!(parsed_time.second, time.second);
+        assert_eq!(parsed_time.hour, time.hour, "時が一致すること");
+        assert_eq!(parsed_time.minute, time.minute, "分が一致すること");
+        assert_eq!(parsed_time.second, time.second, "秒が一致すること");
         // ナノ秒は末尾ゼロの表示差異があるため、値のみ比較
-        prop_assert_eq!(parsed_time.nanosecond, time.nanosecond);
-    }
+        assert_eq!(
+            parsed_time.nanosecond, time.nanosecond,
+            "ナノ秒が一致すること"
+        );
+        Ok(())
+    })?;
+    Ok(())
+}
 
-    /// Offset の Display -> parse ラウンドトリップ。
-    #[test]
-    fn offset_display_parse_roundtrip(offset in offset_strategy()) {
+/// Offset の Display -> parse ラウンドトリップ。
+#[test]
+fn offset_display_parse_roundtrip() -> noprop::TestResult {
+    let seed = noprop::seed_from_env_or_time("NOPROP_SEED")?;
+    let mut runner = noprop::Runner::new(seed);
+    runner.run(256, |ctx| {
+        let offset = sample_offset(ctx);
         let s = offset.to_string();
         // Offset は直接 FromStr を持たないが、Datetime として検証
         let dt_str = format!("2000-01-01T00:00:00{s}");
         let parsed: Datetime = dt_str.parse().expect("入力のパースに成功するはず");
-        prop_assert!(parsed.offset.is_some());
+        assert!(parsed.offset.is_some(), "オフセットは設定されること");
         let parsed_offset = parsed.offset.expect("オフセットは設定されるはず");
         match (&offset, &parsed_offset) {
             (Offset::Z, Offset::Z) => {}
             (Offset::Custom { minutes: m1 }, Offset::Custom { minutes: m2 }) => {
-                prop_assert_eq!(m1, m2);
+                assert_eq!(m1, m2, "オフセットの分が一致すること");
             }
-            _ => prop_assert!(false, "オフセットの型が一致しない"),
+            _ => panic!("オフセットの型が一致しない"),
         }
-    }
+        Ok(())
+    })?;
+    Ok(())
+}
 
-    /// Datetime の全バリアント Display -> FromStr ラウンドトリップ。
-    #[test]
-    fn datetime_roundtrip(dt in datetime_strategy()) {
+/// Datetime の全バリアント Display -> FromStr ラウンドトリップ。
+#[test]
+fn datetime_roundtrip() -> noprop::TestResult {
+    let seed = noprop::seed_from_env_or_time("NOPROP_SEED")?;
+    let mut runner = noprop::Runner::new(seed);
+    runner.run(256, |ctx| {
+        let dt = sample_datetime(ctx);
         let s = dt.to_string();
-        if s.is_empty() {
-            // date=None, time=None の場合はスキップ
-            return Ok(());
-        }
         let parsed: Datetime = s.parse().expect("入力のパースに成功するはず");
-        prop_assert_eq!(parsed.date, dt.date);
+        assert_eq!(parsed.date, dt.date, "日付が一致すること");
         // time のナノ秒は表示上末尾ゼロが除去されるが parse で復元される
         match (&dt.time, &parsed.time) {
             (Some(t1), Some(t2)) => {
-                prop_assert_eq!(t1.hour, t2.hour);
-                prop_assert_eq!(t1.minute, t2.minute);
-                prop_assert_eq!(t1.second, t2.second);
-                prop_assert_eq!(t1.nanosecond, t2.nanosecond);
+                assert_eq!(t1.hour, t2.hour, "時が一致すること");
+                assert_eq!(t1.minute, t2.minute, "分が一致すること");
+                assert_eq!(t1.second, t2.second, "秒が一致すること");
+                assert_eq!(t1.nanosecond, t2.nanosecond, "ナノ秒が一致すること");
             }
             (None, None) => {}
-            _ => prop_assert!(false, "時刻の有無が一致しない"),
+            _ => panic!("時刻の有無が一致しない"),
         }
-        prop_assert_eq!(parsed.offset, dt.offset);
-    }
+        assert_eq!(parsed.offset, dt.offset, "オフセットが一致すること");
+        Ok(())
+    })?;
+    Ok(())
+}
 
-    /// Date の validate は常に成功する（Strategy が有効な値のみ生成するため）。
-    #[test]
-    fn date_always_valid(date in date_strategy()) {
-        prop_assert!(date.validate().is_ok());
-    }
+/// Date の validate は常に成功する（生成ヘルパーが有効な値のみ生成するため）。
+#[test]
+fn date_always_valid() -> noprop::TestResult {
+    let seed = noprop::seed_from_env_or_time("NOPROP_SEED")?;
+    let mut runner = noprop::Runner::new(seed);
+    runner.run(256, |ctx| {
+        let date = sample_date(ctx);
+        assert!(date.validate().is_ok(), "Date の validate が成功すること");
+        Ok(())
+    })?;
+    Ok(())
+}
 
-    /// Time の validate は常に成功する。
-    #[test]
-    fn time_always_valid(time in time_strategy()) {
-        prop_assert!(time.validate().is_ok());
-    }
+/// Time の validate は常に成功する。
+#[test]
+fn time_always_valid() -> noprop::TestResult {
+    let seed = noprop::seed_from_env_or_time("NOPROP_SEED")?;
+    let mut runner = noprop::Runner::new(seed);
+    runner.run(256, |ctx| {
+        let time = sample_time(ctx);
+        assert!(time.validate().is_ok(), "Time の validate が成功すること");
+        Ok(())
+    })?;
+    Ok(())
+}
 
-    /// Offset の validate は常に成功する。
-    #[test]
-    fn offset_always_valid(offset in offset_strategy()) {
-        prop_assert!(offset.validate().is_ok());
-    }
+/// Offset の validate は常に成功する。
+#[test]
+fn offset_always_valid() -> noprop::TestResult {
+    let seed = noprop::seed_from_env_or_time("NOPROP_SEED")?;
+    let mut runner = noprop::Runner::new(seed);
+    runner.run(256, |ctx| {
+        let offset = sample_offset(ctx);
+        assert!(
+            offset.validate().is_ok(),
+            "Offset の validate が成功すること"
+        );
+        Ok(())
+    })?;
+    Ok(())
 }

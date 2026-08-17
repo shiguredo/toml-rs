@@ -121,7 +121,7 @@ fn value_text<'a>(document: &'a Document, path: &str) -> Result<Option<&'a str>,
 - `src/error.rs`：エラー種別、バイト位置、行番号と列番号の算出
 - `refs/v1.0.0.md` と `refs/v1.1.0.md`：実装判断の根拠にするローカル仕様書
 - `tools/toml-test-adapter/`：公式 `toml-test` と公開 API を接続するアダプタ
-- `pbt/`：`proptest` によるラウンドトリップと不変条件の検証
+- `pbt/`：`noprop` によるラウンドトリップと不変条件の検証
 - `fuzz/`：パーサ、シリアライザ、編集、値パスのパニック安全性検証
 
 ## 実装時に維持する不変条件
