@@ -9,13 +9,17 @@ fn parse_serialize_parse_roundtrip() -> noprop::TestResult {
         let table = sample_table(ctx);
         let value = shiguredo_toml::Value::Table(table);
         let serialized = shiguredo_toml::to_string(&value).expect("シリアライズに成功するはず");
-        let parsed1 = shiguredo_toml::from_str(&serialized).expect("TOML のパースに成功するはず");
+        let parsed1 = shiguredo_toml::from_str(&serialized)
+            .expect("TOML のパースに成功するはず ({serialized:?})");
         let re_serialized =
             shiguredo_toml::to_string(&shiguredo_toml::Value::Table(parsed1.clone()))
                 .expect("シリアライズに成功するはず");
-        let parsed2 =
-            shiguredo_toml::from_str(&re_serialized).expect("TOML のパースに成功するはず");
-        assert_eq!(parsed1, parsed2, "パース結果が一致すること");
+        let parsed2 = shiguredo_toml::from_str(&re_serialized)
+            .expect("TOML のパースに成功するはず ({re_serialized:?})");
+        assert_eq!(
+            parsed1, parsed2,
+            "パース結果が一致しない: {serialized:?} -> {parsed1:?} <> {parsed2:?}"
+        );
         Ok(())
     })?;
     Ok(())
@@ -30,15 +34,16 @@ fn parse_simple_key_value() -> noprop::TestResult {
         let key = sample_bare_key(ctx);
         let val = noprop::sample_i64(ctx);
         let input = format!("{key} = {val}");
-        let table = shiguredo_toml::from_str(&input).expect("TOML のパースに成功するはず");
+        let table =
+            shiguredo_toml::from_str(&input).expect("TOML のパースに成功するはず ({input:?})");
         assert_eq!(
             table
                 .get(&key)
-                .expect("キーは存在するはず")
+                .expect("キーは存在するはず ({input:?})")
                 .as_integer()
-                .expect("値は整数になるはず"),
+                .expect("値は整数になるはず ({input:?})"),
             val,
-            "整数の解析結果が一致すること"
+            "整数の解析結果が一致しない: {input:?}"
         );
         Ok(())
     })?;
@@ -54,15 +59,16 @@ fn parse_bool_value() -> noprop::TestResult {
         let key = sample_bare_key(ctx);
         let b = noprop::sample_bool(ctx);
         let input = format!("{key} = {b}");
-        let table = shiguredo_toml::from_str(&input).expect("TOML のパースに成功するはず");
+        let table =
+            shiguredo_toml::from_str(&input).expect("TOML のパースに成功するはず ({input:?})");
         assert_eq!(
             table
                 .get(&key)
-                .expect("キーは存在するはず")
+                .expect("キーは存在するはず ({input:?})")
                 .as_bool()
-                .expect("値はブール値になるはず"),
+                .expect("値はブール値になるはず ({input:?})"),
             b,
-            "ブール値の解析結果が一致すること"
+            "ブール値の解析結果が一致しない: {input:?}"
         );
         Ok(())
     })?;
@@ -82,7 +88,10 @@ fn empty_table_roundtrip() -> noprop::TestResult {
         assert!(table.is_empty(), "空のテーブルになること");
         let serialized = shiguredo_toml::to_string(&shiguredo_toml::Value::Table(table))
             .expect("シリアライズに成功するはず");
-        assert_eq!(serialized, "", "空テーブルの直列化結果は空文字列になること");
+        assert_eq!(
+            serialized, "",
+            "空テーブルの直列化結果は空文字列になること ({serialized:?})"
+        );
         Ok(())
     })?;
     Ok(())
@@ -99,7 +108,7 @@ fn parse_serialize_parse_roundtrip_v1_1() -> noprop::TestResult {
         let serialized = shiguredo_toml::to_string(&value).expect("シリアライズに成功するはず");
         let parsed1 =
             shiguredo_toml::from_str_with_version(&serialized, shiguredo_toml::TomlVersion::V1_1)
-                .expect("TOML のパースに成功するはず");
+                .expect("TOML のパースに成功するはず ({serialized:?})");
         let re_serialized =
             shiguredo_toml::to_string(&shiguredo_toml::Value::Table(parsed1.clone()))
                 .expect("シリアライズに成功するはず");
@@ -107,8 +116,11 @@ fn parse_serialize_parse_roundtrip_v1_1() -> noprop::TestResult {
             &re_serialized,
             shiguredo_toml::TomlVersion::V1_1,
         )
-        .expect("TOML のパースに成功するはず");
-        assert_eq!(parsed1, parsed2, "パース結果が一致すること");
+        .expect("TOML のパースに成功するはず ({re_serialized:?})");
+        assert_eq!(
+            parsed1, parsed2,
+            "パース結果が一致しない: {serialized:?} -> {parsed1:?} <> {parsed2:?}"
+        );
         Ok(())
     })?;
     Ok(())

@@ -5,7 +5,8 @@ use shiguredo_toml::{Document, Value};
 ///
 /// 既存キーと新規キーが同一だと `set_path` による挿入が既存値の置換になり、
 /// 新規キーの挿入を検証するテストの意図を外れるため、末尾に 1 文字足して
-/// 必ず異なるキーを生成する。
+/// 必ず異なるキーを生成する。制約を valid-by-construction で満たすことで、
+/// 棄却（rejection）なしに常に有効なケースを生成する。
 ///
 /// 編集テスト固有の制約（既存キーと新規キーの不一致）を表現するヘルパーのため、
 /// 汎用の生成ヘルパーを集約する `pbt/src/lib.rs` には置かず、テストファイル内に置く。
@@ -26,7 +27,7 @@ fn replace_existing_scalar_value() -> noprop::TestResult {
         let old = noprop::sample_i64(ctx);
         let new = noprop::sample_i64(ctx);
         let input = format!("{key} = {old}\n");
-        let mut doc = Document::parse(&input).expect("TOML のパースに成功するはず");
+        let mut doc = Document::parse(&input).expect("TOML のパースに成功するはず ({input:?})");
 
         doc.set_path(&key, Value::Integer(new))
             .expect("編集に成功するはず");
@@ -35,7 +36,7 @@ fn replace_existing_scalar_value() -> noprop::TestResult {
         assert_eq!(
             parsed[&key].as_integer().expect("値は整数になるはず"),
             new,
-            "置換後の値が一致すること"
+            "置換後の値が一致しない: 入力 {input:?} を {key:?} = {new} に置換"
         );
         Ok(())
     })?;
@@ -53,7 +54,7 @@ fn insert_then_get_roundtrip() -> noprop::TestResult {
         let new_val = noprop::sample_i64(ctx);
 
         let input = format!("{existing_key} = {existing_val}\n");
-        let mut doc = Document::parse(&input).expect("TOML のパースに成功するはず");
+        let mut doc = Document::parse(&input).expect("TOML のパースに成功するはず ({input:?})");
 
         doc.set_path(&new_key, Value::Integer(new_val))
             .expect("編集に成功するはず");
@@ -65,7 +66,7 @@ fn insert_then_get_roundtrip() -> noprop::TestResult {
                 .as_integer()
                 .expect("値は整数になるはず"),
             new_val,
-            "挿入したキーの値が一致すること"
+            "挿入したキーの値が一致しない: 入力 {input:?} に {new_key:?} = {new_val} を挿入"
         );
         // 既存キーも保持される
         assert_eq!(
@@ -74,7 +75,7 @@ fn insert_then_get_roundtrip() -> noprop::TestResult {
                 .as_integer()
                 .expect("値は整数になるはず"),
             existing_val,
-            "既存キーの値が保持されること"
+            "既存キーの値が保持されない: 入力 {input:?}"
         );
         Ok(())
     })?;
@@ -92,7 +93,7 @@ fn insert_produces_valid_toml() -> noprop::TestResult {
         let new_val = noprop::sample_i64(ctx);
 
         let input = format!("{existing_key} = {existing_val}\n");
-        let mut doc = Document::parse(&input).expect("TOML のパースに成功するはず");
+        let mut doc = Document::parse(&input).expect("TOML のパースに成功するはず ({input:?})");
 
         doc.set_path(&new_key, Value::Integer(new_val))
             .expect("編集に成功するはず");
@@ -102,14 +103,14 @@ fn insert_produces_valid_toml() -> noprop::TestResult {
         assert_eq!(
             parsed[&new_key].as_integer().expect("値は整数になるはず"),
             new_val,
-            "挿入したキーの値が一致すること"
+            "挿入したキーの値が一致しない: 入力 {input:?} に {new_key:?} = {new_val} を挿入"
         );
         assert_eq!(
             parsed[&existing_key]
                 .as_integer()
                 .expect("値は整数になるはず"),
             existing_val,
-            "既存キーの値が一致すること"
+            "既存キーの値が一致しない: 入力 {input:?}"
         );
         Ok(())
     })?;
