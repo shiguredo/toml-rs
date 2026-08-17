@@ -5,7 +5,7 @@ edition = "2024"
 publish = false
 
 [dependencies]
-# プロパティベーステスト（proptest マクロと Strategy）
-proptest = "1.11"
+# プロパティベーステスト（シードとケース数を呼び出し側が明示する imperative な PBT）
+noprop = "0.2"
 # 被テストクレート
 shiguredo_toml = { path = "../" }

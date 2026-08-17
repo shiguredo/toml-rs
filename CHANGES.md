@@ -13,6 +13,8 @@
 
 - [CHANGE] 最小対応 Rust バージョン (MSRV) を 1.88 から 1.93 に引き上げる
   - @voluntas
+- [CHANGE] PBT の依存を proptest から noprop に切り替える
+  - @voluntas
 - [FIX] 配列テーブルを再オープンした後にサブテーブルを定義するとエラーになるのを修正する
   - @voluntas
 - [FIX] 無効な Datetime をシリアライズするとエラーになるようにする
@@ -22,8 +24,6 @@
 ### misc
 
 - `unwrap()` を `expect()` に置き換える
-  - @voluntas
-- proptest を 1.11 に更新する
   - @voluntas
 - prek に tombi フックを追加し、cargo test を pre-push に移動する
   - @voluntas
