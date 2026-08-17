@@ -26,7 +26,7 @@
 ## 設計方針
 
 - 時雨堂共有の `shiguredo-rust` スキルには「PBT は proptest を使うこと」の規約があるが、本 issue はこれと衝突する。スキルは本リポジトリ外（llm-feedback で管理）のため本 issue の変更対象に含めず、切り替え完了後に llm-feedback 側でスキルの規約を更新する（本 issue の完了条件には含めない）
-- 依存は crates.io の `noprop` を使う（ローカル path 依存にしない。バージョンは `noprop = "0.2"` のようにマイナーバージョンまで指定する）
+- 依存は crates.io の `noprop` を使う（バージョンは `noprop = "0.2"` のようにマイナーバージョンまで指定する）
 - `proptest` の combinator DSL / マクロを残さず、`noprop::Runner` と `sample_*` による imperative な API に置き換える
 - 既存 PBT が検証しているプロパティ（ラウンドトリップ、パース不変条件、Datetime の妥当性、編集後の一貫性など）の意図は維持する
 - 生成ロジックは `pbt/src/lib.rs` に `sample_*` 関数として集約し、各 `prop_*.rs` から呼ぶ形にする
