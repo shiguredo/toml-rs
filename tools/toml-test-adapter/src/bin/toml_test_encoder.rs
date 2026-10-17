@@ -1,6 +1,6 @@
 use std::io::{self, Read};
 
-use serde_json::{Map, Value as JsonValue};
+use nojson::{JsonParseError, JsonValueKind, RawJson, RawJsonValue};
 use shiguredo_toml::{Datetime, Table, Value};
 
 fn main() {
@@ -9,19 +9,22 @@ fn main() {
         std::process::exit(1);
     }
 
-    let json = match serde_json::from_str::<JsonValue>(&input) {
+    let json = match RawJson::parse(&input) {
         Ok(v) => v,
         Err(_) => std::process::exit(1),
     };
 
-    let root = match json {
-        JsonValue::Object(map) => map,
-        _ => std::process::exit(1),
-    };
-
     let mut table = Table::new();
-    for (key, value) in root {
-        let parsed = match from_tagged_json(&value) {
+    let members = match json.value().to_object() {
+        Ok(v) => v,
+        Err(_) => std::process::exit(1),
+    };
+    for (key, value) in members {
+        let key = match key.to_unquoted_string_str() {
+            Ok(v) => v.into_owned(),
+            Err(_) => std::process::exit(1),
+        };
+        let parsed = match from_tagged_json(value) {
             Ok(v) => v,
             Err(_) => std::process::exit(1),
         };
@@ -34,40 +37,40 @@ fn main() {
     }
 }
 
-fn from_tagged_json(value: &JsonValue) -> Result<Value, String> {
-    match value {
-        JsonValue::Array(arr) => {
-            let mut values = Vec::with_capacity(arr.len());
-            for item in arr {
+/// toml-test の tagged JSON 形式の値を TOML の値に変換する。
+fn from_tagged_json(value: RawJsonValue<'_, '_>) -> Result<Value, JsonParseError> {
+    match value.kind() {
+        JsonValueKind::Array => {
+            let mut values = Vec::new();
+            for item in value.to_array()? {
                 values.push(from_tagged_json(item)?);
             }
             Ok(Value::Array(values))
         }
-        JsonValue::Object(map) => parse_object(map),
-        _ => Err("unsupported JSON value".to_owned()),
+        JsonValueKind::Object => {
+            // `type` と `value` の 2 キーだけを持つオブジェクトをスカラーとして扱う
+            let is_tagged = value.to_object()?.count() == 2
+                && value.to_member("type")?.optional().is_some()
+                && value.to_member("value")?.optional().is_some();
+            if is_tagged {
+                let kind: String = value.to_member("type")?.required()?.try_into()?;
+                let raw: String = value.to_member("value")?.required()?.try_into()?;
+                return parse_scalar(&kind, &raw).map_err(|message| value.invalid(message));
+            }
+
+            // テーブルはキーと値の組をそのまま TOML テーブルにする
+            let mut table = Table::new();
+            for (key, item) in value.to_object()? {
+                let key = key.to_unquoted_string_str()?.into_owned();
+                table.insert(key, from_tagged_json(item)?);
+            }
+            Ok(Value::Table(table))
+        }
+        _ => Err(value.invalid("unsupported JSON value")),
     }
 }
 
-fn parse_object(map: &Map<String, JsonValue>) -> Result<Value, String> {
-    if map.len() == 2 && map.contains_key("type") && map.contains_key("value") {
-        let kind = map
-            .get("type")
-            .and_then(JsonValue::as_str)
-            .ok_or_else(|| "invalid type field".to_owned())?;
-        let raw = map
-            .get("value")
-            .and_then(JsonValue::as_str)
-            .ok_or_else(|| "invalid value field".to_owned())?;
-        return parse_scalar(kind, raw);
-    }
-
-    let mut table = Table::new();
-    for (key, value) in map {
-        table.insert(key.clone(), from_tagged_json(value)?);
-    }
-    Ok(Value::Table(table))
-}
-
+/// tagged JSON のスカラーを TOML の値に変換する。
 fn parse_scalar(kind: &str, raw: &str) -> Result<Value, String> {
     match kind {
         "string" => Ok(Value::String(raw.to_owned())),
@@ -89,6 +92,7 @@ fn parse_scalar(kind: &str, raw: &str) -> Result<Value, String> {
     }
 }
 
+/// tagged JSON の浮動小数点表記を f64 に変換する。
 fn parse_float(raw: &str) -> Result<f64, String> {
     let lower = raw.to_ascii_lowercase();
     match lower.as_str() {

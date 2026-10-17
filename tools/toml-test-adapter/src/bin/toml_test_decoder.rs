@@ -1,6 +1,6 @@
 use std::io::{self, Read};
 
-use serde_json::{Map, Value as JsonValue};
+use nojson::{DisplayJson, JsonFormatter};
 use shiguredo_toml::{Datetime, TomlVersion, Value};
 
 fn main() {
@@ -23,68 +23,73 @@ fn main() {
         Err(_) => std::process::exit(1),
     };
 
-    let mut root = Map::new();
-    for (key, value) in parsed {
-        root.insert(key, to_tagged_json(&value));
-    }
-
-    let output = JsonValue::Object(root);
-    match serde_json::to_string(&output) {
-        Ok(s) => println!("{s}"),
-        Err(_) => std::process::exit(1),
-    }
+    // ルートテーブルは tagged JSON のオブジェクトとしてそのまま出力する
+    let root = Value::Table(parsed);
+    let output = nojson::json(|f| f.value(TaggedJson(&root)));
+    println!("{output}");
 }
 
-fn tagged(kind: &str, value: String) -> JsonValue {
-    let mut map = Map::new();
-    map.insert("type".to_owned(), JsonValue::String(kind.to_owned()));
-    map.insert("value".to_owned(), JsonValue::String(value));
-    JsonValue::Object(map)
-}
+/// TOML の値を toml-test の tagged JSON 形式で出力するラッパー。
+struct TaggedJson<'a>(&'a Value);
 
-fn tagged_datetime(dt: &Datetime) -> JsonValue {
-    let (kind, value) = match (&dt.date, &dt.time, &dt.offset) {
-        (Some(_), Some(_), Some(_)) => ("datetime", dt.to_string()),
-        (Some(_), Some(_), None) => ("datetime-local", dt.to_string()),
-        (Some(_), None, None) => ("date-local", dt.to_string()),
-        (None, Some(_), None) => ("time-local", dt.to_string()),
-        _ => ("datetime", dt.to_string()),
-    };
-    tagged(kind, value)
-}
-
-fn to_tagged_json(value: &Value) -> JsonValue {
-    match value {
-        Value::String(s) => tagged("string", s.clone()),
-        Value::Integer(n) => tagged("integer", n.to_string()),
-        Value::Float(f) => {
-            if f.is_nan() {
-                tagged("float", "nan".to_owned())
-            } else if f.is_infinite() {
-                if f.is_sign_negative() {
-                    tagged("float", "-inf".to_owned())
+impl DisplayJson for TaggedJson<'_> {
+    fn fmt(&self, f: &mut JsonFormatter<'_, '_>) -> std::fmt::Result {
+        match self.0 {
+            Value::String(s) => tagged(f, "string", s),
+            Value::Integer(n) => tagged(f, "integer", &n.to_string()),
+            Value::Float(v) => {
+                let text = if v.is_nan() {
+                    "nan".to_owned()
+                } else if v.is_infinite() {
+                    if v.is_sign_negative() {
+                        "-inf".to_owned()
+                    } else {
+                        "inf".to_owned()
+                    }
                 } else {
-                    tagged("float", "inf".to_owned())
+                    v.to_string()
+                };
+                tagged(f, "float", &text)
+            }
+            Value::Boolean(b) => tagged(f, "bool", if *b { "true" } else { "false" }),
+            Value::Datetime(dt) => {
+                let (kind, text) = tagged_datetime(dt);
+                tagged(f, kind, &text)
+            }
+            Value::Array(values) => f.array(|f| {
+                for value in values {
+                    f.element(TaggedJson(value))?;
                 }
-            } else {
-                tagged("float", f.to_string())
-            }
-        }
-        Value::Boolean(b) => tagged("bool", b.to_string()),
-        Value::Datetime(dt) => tagged_datetime(dt),
-        Value::Array(values) => {
-            let mut arr = Vec::with_capacity(values.len());
-            for item in values {
-                arr.push(to_tagged_json(item));
-            }
-            JsonValue::Array(arr)
-        }
-        Value::Table(table) => {
-            let mut map = Map::new();
-            for (key, inner) in table {
-                map.insert(key.clone(), to_tagged_json(inner));
-            }
-            JsonValue::Object(map)
+                Ok(())
+            }),
+            Value::Table(table) => f.object(|f| {
+                f.members(
+                    table
+                        .iter()
+                        .map(|(key, value)| (key.as_str(), TaggedJson(value))),
+                )
+            }),
         }
     }
+}
+
+/// スカラー値を `{"type": kind, "value": text}` 形式で出力する。
+fn tagged(f: &mut JsonFormatter<'_, '_>, kind: &str, text: &str) -> std::fmt::Result {
+    f.object(|f| {
+        f.member("type", kind)?;
+        f.member("value", text)
+    })
+}
+
+/// 日時の種類と TOML 表記を返す。
+fn tagged_datetime(dt: &Datetime) -> (&'static str, String) {
+    let kind = match (&dt.date, &dt.time, &dt.offset) {
+        (Some(_), Some(_), Some(_)) => "datetime",
+        (Some(_), Some(_), None) => "datetime-local",
+        (Some(_), None, None) => "date-local",
+        (None, Some(_), None) => "time-local",
+        // ここには到達しないが、未知の組み合わせでも datetime として出力する
+        _ => "datetime",
+    };
+    (kind, dt.to_string())
 }
