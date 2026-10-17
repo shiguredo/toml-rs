@@ -1,6 +1,6 @@
 #![no_main]
-use libfuzzer_sys::fuzz_target;
 use libfuzzer_sys::arbitrary::{self, Arbitrary};
+use libfuzzer_sys::fuzz_target;
 use shiguredo_toml::{Document, Value};
 
 /// 構造化 fuzzing 用の入力。TOML テキストとパス文字列の両方を生成する。

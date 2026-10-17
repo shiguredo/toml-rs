@@ -95,8 +95,6 @@ fn parse_float(raw: &str) -> Result<f64, String> {
         "inf" | "+inf" => Ok(f64::INFINITY),
         "-inf" => Ok(f64::NEG_INFINITY),
         "nan" | "+nan" | "-nan" => Ok(f64::NAN),
-        _ => raw
-            .parse::<f64>()
-            .map_err(|_| "invalid float".to_owned()),
+        _ => raw.parse::<f64>().map_err(|_| "invalid float".to_owned()),
     }
 }
