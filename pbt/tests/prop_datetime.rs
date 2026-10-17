@@ -78,7 +78,7 @@ fn offset_display_parse_roundtrip() -> noprop::TestResult {
             .parse()
             .expect("入力のパースに成功するはず ({dt_str:?})");
         assert!(parsed.offset.is_some(), "オフセットは設定されること");
-        let parsed_offset = parsed.offset.clone().expect("オフセットは設定されるはず");
+        let parsed_offset = parsed.offset.expect("オフセットは設定されるはず");
         match (&offset, &parsed_offset) {
             (Offset::Z, Offset::Z) => {
                 // 検証を通過した後にカウントする

@@ -30,9 +30,9 @@ pub struct Time {
 }
 
 /// TOML のオフセット部分。
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Offset {
-    /// UTC (Z)
+    /// UTC (末尾の `Z` 表記)
     Z,
     /// カスタムオフセット (分単位、例: +09:00 = 540)
     Custom {
@@ -43,12 +43,12 @@ pub enum Offset {
 
 /// TOML の日時型。
 ///
-/// 4 つの TOML 日時バリアントをすべて表現する:
+/// TOML の 4 種類の日時をすべて表現する:
 ///
-/// - Offset Date-Time: `date=Some`, `time=Some`, `offset=Some`
-/// - Local Date-Time: `date=Some`, `time=Some`, `offset=None`
-/// - Local Date: `date=Some`, `time=None`, `offset=None`
-/// - Local Time: `date=None`, `time=Some`, `offset=None`
+/// - オフセット付き日時 (Offset Date-Time): `date=Some`, `time=Some`, `offset=Some`
+/// - ローカル日時 (Local Date-Time): `date=Some`, `time=Some`, `offset=None`
+/// - ローカル日付 (Local Date): `date=Some`, `time=None`, `offset=None`
+/// - ローカル時刻 (Local Time): `date=None`, `time=Some`, `offset=None`
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Datetime {
     /// 日付部分
@@ -137,11 +137,11 @@ impl Time {
 
 impl Offset {
     /// オフセットを検証する。
-    pub fn validate(&self) -> Result<(), Error> {
+    pub fn validate(self) -> Result<(), Error> {
         match self {
             Offset::Z => Ok(()),
             Offset::Custom { minutes } => {
-                if *minutes < -1439 || *minutes > 1439 {
+                if !(-1439..=1439).contains(&minutes) {
                     return Err(Error::validate(format!(
                         "offset out of range: {} minutes",
                         minutes
@@ -351,7 +351,7 @@ pub(crate) fn parse_datetime_str_with_version(
                 b as char
             )));
         }
-        None => unreachable!(),
+        None => unreachable!("rest is non-empty because the empty case returned early"),
     };
 
     let (time, rest) = parse_time_part_with_version(rest, version)?;
