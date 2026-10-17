@@ -11,9 +11,11 @@
 
 ## develop
 
-- [CHANGE] 最小対応 Rust バージョン (MSRV) を 1.88 から 1.93 に引き上げる
+- [CHANGE] 最小対応 Rust バージョン (MSRV) を 1.88 から 1.95 に引き上げる
   - @voluntas
 - [CHANGE] PBT の依存を proptest から noprop に切り替える
+  - @voluntas
+- [ADD] `Offset` に `Copy` を実装する
   - @voluntas
 - [FIX] 配列テーブルを再オープンした後にサブテーブルを定義するとエラーになるのを修正する
   - @voluntas
@@ -32,6 +34,10 @@
 - `unwrap()` を `expect()` に置き換える
   - @voluntas
 - prek に tombi フックを追加し、cargo test を pre-push に移動する
+  - @voluntas
+- toml-test アダプタの JSON 依存を serde_json から nojson に切り替える
+  - @voluntas
+- prek / CI / Makefile でワークスペース外の fuzz と tools も fmt / clippy の対象にする
   - @voluntas
 
 ## 2026.2.0
