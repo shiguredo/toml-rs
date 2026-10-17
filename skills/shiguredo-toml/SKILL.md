@@ -5,7 +5,7 @@ description: |
     TOML v1.0.0 / v1.1.0 のパース、シリアライズ、no_std、Document による非破壊編集、TextSpan とコメント位置、toml-test 準拠確認を扱う。
     shiguredo_toml、toml-rs、TOML の構文対応、値パス、位置情報、コメント保持、パーサやシリアライザの修正が話題になったときに使用する。
 license: Apache-2.0
-compatibility: Rust 1.93 以降と Cargo が必要。
+compatibility: Rust 1.95 以降と Cargo が必要。
 metadata:
     github-repo: https://github.com/shiguredo/toml-rs
     github-path: skills/shiguredo-toml
@@ -19,7 +19,7 @@ metadata:
 
 - ルートクレートは `#![no_std]` であり、ヒープ割り当てに `alloc` を使用する
 - ルートクレートの通常依存は 0 であり、`src/` の変更では `std` や外部クレートを持ち込まない
-- MSRV は Rust 1.93、エディションは Rust 2024 である
+- MSRV は Rust 1.95、エディションは Rust 2024 である
 - TOML v1.0.0 と v1.1.0 を扱う
 - `Table` は `BTreeMap<String, Value>` なので、キー順はソートされる
 - パーサとシリアライザの最大ネスト深度はどちらも 128 であり、片方を変える場合はもう片方との整合性も確認する

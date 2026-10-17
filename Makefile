@@ -1,4 +1,7 @@
-.PHONY: test cover pbt pbt-cover fuzz fuzzing fuzzing-parallel fuzzing-list check clippy fmt clean toml-test-v1_0 toml-test-v1_1 toml-test-time toml-test-v1_0-ci toml-test-v1_1-ci
+.PHONY: test cover pbt pbt-with-cover fuzzing fuzzing-parallel fuzzing-list check clippy fmt clean toml-test-v1_0 toml-test-v1_1 toml-test-time toml-test-v1_0-ci toml-test-v1_1-ci
+
+# コア数 (Linux の nproc、macOS の sysctl の順に試す)
+CORES := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 
 # 全テストを実行する
 test:
@@ -8,15 +11,19 @@ test:
 cover:
 	cargo llvm-cov --tests --workspace
 
+# PBT を実行する
+pbt:
+	cargo test -p pbt
+
 # PBT をカバレッジ付きで実行する
 pbt-with-cover:
 	cargo llvm-cov -p pbt --tests
 
 # Fuzzing を全ターゲットで逐次実行する（fork 数はコア数に応じて自動調整）
 fuzzing:
-	@FORKS=$$(( $$(nproc) - 2 )); \
+	@FORKS=$$(( $(CORES) - 2 )); \
 	if [ $$FORKS -lt 1 ]; then FORKS=1; fi; \
-	echo "Using fork=$$FORKS on $$(nproc) cores"; \
+	echo "Using fork=$$FORKS on $(CORES) cores"; \
 	for target in $$(cargo fuzz list); do \
 		echo "=== Fuzzing $$target ==="; \
 		cargo +nightly fuzz run $$target -- -max_total_time=30 -fork=$$FORKS -max_len=4096 || exit 1; \
@@ -25,9 +32,9 @@ fuzzing:
 # Fuzzing を全ターゲットで並列実行しレポートを出力する（fork 数はコア数に応じて自動調整）
 fuzzing-parallel:
 	@mkdir -p fuzz/logs
-	@FORKS=$$(( $$(nproc) - 2 )); \
+	@FORKS=$$(( $(CORES) - 2 )); \
 	if [ $$FORKS -lt 1 ]; then FORKS=1; fi; \
-	echo "Using fork=$$FORKS on $$(nproc) cores"; \
+	echo "Using fork=$$FORKS on $(CORES) cores"; \
 	cargo fuzz list | xargs -P $$(cargo fuzz list | wc -l) -I {} \
 		sh -c 'cargo +nightly fuzz run {} -- -max_total_time=30 -fork=1 -max_len=4096 > fuzz/logs/{}.log 2>&1'
 	@echo "=== Fuzzing Report ==="
@@ -44,14 +51,20 @@ fuzzing-list:
 # cargo check を実行する
 check:
 	cargo check --workspace
+	cargo check --manifest-path fuzz/Cargo.toml
+	cargo check --manifest-path tools/toml-test-adapter/Cargo.toml
 
 # cargo clippy を実行する
 clippy:
-	cargo clippy --workspace -- -D warnings
+	cargo clippy --workspace --all-targets -- -D warnings
+	cargo clippy --manifest-path fuzz/Cargo.toml --all-targets -- -D warnings
+	cargo clippy --manifest-path tools/toml-test-adapter/Cargo.toml --all-targets -- -D warnings
 
 # cargo fmt を実行する
 fmt:
 	cargo fmt --all
+	cargo fmt --manifest-path fuzz/Cargo.toml
+	cargo fmt --manifest-path tools/toml-test-adapter/Cargo.toml
 
 # toml-test (TOML v1.0) を実行する
 toml-test-v1_0:
