@@ -22,4 +22,3 @@
 
 - `make toml-test-ci`: valid 205 / encoder 205 / invalid 473 がすべて成功
 - `make check`: 成功
-

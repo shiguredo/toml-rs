@@ -1,8 +1,8 @@
 [package]
 name = "shiguredo_toml"
-version = "2026.2.0"
+version = "2026.3.0"
 edition = "2024"
-rust-version = "1.88"
+rust-version = "1.95"
 description = "TOML Library"
 readme = "README.md"
 homepage = "https://github.com/shiguredo/toml-rs"
@@ -17,4 +17,5 @@ exclude = ["fuzz", "tools/toml-test-adapter"]
 [dependencies]
 
 [dev-dependencies]
-insta = "1.47"
+# スナップショットテスト（パーサ・シリアライザ・エディタの出力検証）
+insta = "1.49"

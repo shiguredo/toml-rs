@@ -1,70 +1,118 @@
-use pbt::bare_key_strategy;
-use proptest::prelude::*;
+use pbt::sample_bare_key;
 use shiguredo_toml::{Document, Value};
 
-proptest! {
-    /// 既存キーの値を置換しても TOML として再解析可能で、置換値が反映される。
-    #[test]
-    fn replace_existing_scalar_value(
-        key in bare_key_strategy(),
-        old in any::<i64>(),
-        new in any::<i64>(),
-    ) {
+/// 既存キーと必ず異なる新規キーのペアを生成する。
+///
+/// 既存キーと新規キーが同一だと `set_path` による挿入が既存値の置換になり、
+/// 新規キーの挿入を検証するテストの意図を外れるため、末尾に 1 文字足して
+/// 必ず異なるキーを生成する。制約を valid-by-construction で満たすことで、
+/// 棄却（rejection）なしに常に有効なケースを生成する。
+///
+/// 編集テスト固有の制約（既存キーと新規キーの不一致）を表現するヘルパーのため、
+/// 汎用の生成ヘルパーを集約する `pbt/src/lib.rs` には置かず、テストファイル内に置く。
+fn sample_key_pair(ctx: &mut noprop::TestCaseContext) -> (String, String) {
+    let existing_key = sample_bare_key(ctx);
+    let mut new_key = existing_key.clone();
+    new_key.push('_');
+    (existing_key, new_key)
+}
+
+/// 既存キーの値を置換しても TOML として再解析可能で、置換値が反映される。
+#[test]
+fn replace_existing_scalar_value() -> noprop::TestResult {
+    let seed = noprop::seed_from_env_or_time("NOPROP_SEED")?;
+    let mut runner = noprop::Runner::new(seed);
+    runner.run(256, |ctx| {
+        let key = sample_bare_key(ctx);
+        let old = noprop::sample_i64(ctx);
+        let new = noprop::sample_i64(ctx);
         let input = format!("{key} = {old}\n");
-        let mut doc = Document::parse(&input).unwrap();
+        let mut doc = Document::parse(&input).expect("TOML のパースに成功するはず ({input:?})");
 
-        doc.set_path(&key, Value::Integer(new)).unwrap();
+        doc.set_path(&key, Value::Integer(new))
+            .expect("編集に成功するはず");
 
-        let parsed = shiguredo_toml::from_str(doc.as_str()).unwrap();
-        prop_assert_eq!(parsed[&key].as_integer().unwrap(), new);
-    }
+        let parsed = shiguredo_toml::from_str(doc.as_str()).expect("TOML のパースに成功するはず");
+        assert_eq!(
+            parsed[&key].as_integer().expect("値は整数になるはず"),
+            new,
+            "置換後の値が一致しない: 入力 {input:?} を {key:?} = {new} に置換"
+        );
+        Ok(())
+    })?;
+    Ok(())
+}
 
-    /// 新規キーを挿入後、get_path で取得できる。
-    #[test]
-    fn insert_then_get_roundtrip(
-        existing_key in bare_key_strategy(),
-        new_key in bare_key_strategy(),
-        existing_val in any::<i64>(),
-        new_val in any::<i64>(),
-    ) {
-        // 既存キーと新規キーが異なる場合のみテストする
-        prop_assume!(existing_key != new_key);
+/// 新規キーを挿入後、get_path で取得できる。
+#[test]
+fn insert_then_get_roundtrip() -> noprop::TestResult {
+    let seed = noprop::seed_from_env_or_time("NOPROP_SEED")?;
+    let mut runner = noprop::Runner::new(seed);
+    runner.run(256, |ctx| {
+        let (existing_key, new_key) = sample_key_pair(ctx);
+        let existing_val = noprop::sample_i64(ctx);
+        let new_val = noprop::sample_i64(ctx);
 
         let input = format!("{existing_key} = {existing_val}\n");
-        let mut doc = Document::parse(&input).unwrap();
+        let mut doc = Document::parse(&input).expect("TOML のパースに成功するはず ({input:?})");
 
-        doc.set_path(&new_key, Value::Integer(new_val)).unwrap();
+        doc.set_path(&new_key, Value::Integer(new_val))
+            .expect("編集に成功するはず");
 
         // 挿入したキーが取得できる
-        prop_assert_eq!(
-            doc.get_path(&new_key).unwrap().as_integer().unwrap(),
-            new_val
+        assert_eq!(
+            doc.get_path(&new_key)
+                .expect("パスは存在するはず")
+                .as_integer()
+                .expect("値は整数になるはず"),
+            new_val,
+            "挿入したキーの値が一致しない: 入力 {input:?} に {new_key:?} = {new_val} を挿入"
         );
         // 既存キーも保持される
-        prop_assert_eq!(
-            doc.get_path(&existing_key).unwrap().as_integer().unwrap(),
-            existing_val
+        assert_eq!(
+            doc.get_path(&existing_key)
+                .expect("パスは存在するはず")
+                .as_integer()
+                .expect("値は整数になるはず"),
+            existing_val,
+            "既存キーの値が保持されない: 入力 {input:?}"
         );
-    }
+        Ok(())
+    })?;
+    Ok(())
+}
 
-    /// 挿入後の as_str() が有効な TOML として再パース可能。
-    #[test]
-    fn insert_produces_valid_toml(
-        existing_key in bare_key_strategy(),
-        new_key in bare_key_strategy(),
-        existing_val in any::<i64>(),
-        new_val in any::<i64>(),
-    ) {
-        prop_assume!(existing_key != new_key);
+/// 挿入後の as_str() が有効な TOML として再パース可能。
+#[test]
+fn insert_produces_valid_toml() -> noprop::TestResult {
+    let seed = noprop::seed_from_env_or_time("NOPROP_SEED")?;
+    let mut runner = noprop::Runner::new(seed);
+    runner.run(256, |ctx| {
+        let (existing_key, new_key) = sample_key_pair(ctx);
+        let existing_val = noprop::sample_i64(ctx);
+        let new_val = noprop::sample_i64(ctx);
 
         let input = format!("{existing_key} = {existing_val}\n");
-        let mut doc = Document::parse(&input).unwrap();
+        let mut doc = Document::parse(&input).expect("TOML のパースに成功するはず ({input:?})");
 
-        doc.set_path(&new_key, Value::Integer(new_val)).unwrap();
+        doc.set_path(&new_key, Value::Integer(new_val))
+            .expect("編集に成功するはず");
 
         // 出力が有効な TOML であることを検証する
-        let parsed = shiguredo_toml::from_str(doc.as_str()).unwrap();
-        prop_assert_eq!(parsed[&new_key].as_integer().unwrap(), new_val);
-        prop_assert_eq!(parsed[&existing_key].as_integer().unwrap(), existing_val);
-    }
+        let parsed = shiguredo_toml::from_str(doc.as_str()).expect("TOML のパースに成功するはず");
+        assert_eq!(
+            parsed[&new_key].as_integer().expect("値は整数になるはず"),
+            new_val,
+            "挿入したキーの値が一致しない: 入力 {input:?} に {new_key:?} = {new_val} を挿入"
+        );
+        assert_eq!(
+            parsed[&existing_key]
+                .as_integer()
+                .expect("値は整数になるはず"),
+            existing_val,
+            "既存キーの値が一致しない: 入力 {input:?}"
+        );
+        Ok(())
+    })?;
+    Ok(())
 }

@@ -1,3 +1,6 @@
 [toolchain]
-channel = "stable"
+# Cargo.toml の rust-version と同じ MSRV を固定する。
+# "stable" にすると cargo clippy などが MSRV ではなく最新の stable で動いてしまうため、
+# MSRV を上げるときは Cargo.toml の rust-version と同時に更新すること。
+channel = "1.95"
 components = ["rustfmt", "clippy"]

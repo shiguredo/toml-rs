@@ -135,36 +135,243 @@ mod parse_error {
     }
 }
 
+mod datetime_validate {
+    use super::*;
+
+    #[test]
+    fn year_10000_is_invalid() {
+        let d = Date {
+            year: 10000,
+            month: 1,
+            day: 1,
+        };
+        assert!(d.validate().is_err());
+    }
+
+    #[test]
+    fn year_9999_is_valid() {
+        let d = Date {
+            year: 9999,
+            month: 1,
+            day: 1,
+        };
+        assert!(d.validate().is_ok());
+    }
+
+    #[test]
+    fn missing_date_and_time_is_invalid() {
+        let dt = Datetime {
+            date: None,
+            time: None,
+            offset: None,
+        };
+        assert!(dt.validate().is_err());
+    }
+
+    #[test]
+    fn missing_date_and_time_with_offset_is_invalid() {
+        let dt = Datetime {
+            date: None,
+            time: None,
+            offset: Some(Offset::Z),
+        };
+        assert!(dt.validate().is_err());
+    }
+
+    #[test]
+    fn date_only_with_offset_is_invalid() {
+        let dt = Datetime {
+            date: Some(Date {
+                year: 2024,
+                month: 1,
+                day: 1,
+            }),
+            time: None,
+            offset: Some(Offset::Z),
+        };
+        assert!(dt.validate().is_err());
+    }
+
+    #[test]
+    fn time_only_with_offset_is_invalid() {
+        let dt = Datetime {
+            date: None,
+            time: Some(Time {
+                hour: 1,
+                minute: 2,
+                second: 3,
+                nanosecond: 0,
+            }),
+            offset: Some(Offset::Z),
+        };
+        assert!(dt.validate().is_err());
+    }
+
+    #[test]
+    fn four_variants_are_valid() {
+        let date = Some(Date {
+            year: 2024,
+            month: 1,
+            day: 1,
+        });
+        let time = Some(Time {
+            hour: 1,
+            minute: 2,
+            second: 3,
+            nanosecond: 0,
+        });
+
+        // Offset Date-Time
+        let dt = Datetime {
+            date: date.clone(),
+            time: time.clone(),
+            offset: Some(Offset::Z),
+        };
+        assert!(dt.validate().is_ok());
+
+        // Local Date-Time
+        let dt = Datetime {
+            date: date.clone(),
+            time: time.clone(),
+            offset: None,
+        };
+        assert!(dt.validate().is_ok());
+
+        // Local Date
+        let dt = Datetime {
+            date: date.clone(),
+            time: None,
+            offset: None,
+        };
+        assert!(dt.validate().is_ok());
+
+        // Local Time
+        let dt = Datetime {
+            date: None,
+            time: time.clone(),
+            offset: None,
+        };
+        assert!(dt.validate().is_ok());
+    }
+
+    #[test]
+    fn invalid_month_field_is_rejected() {
+        // 範囲外の月は Datetime::validate でも弾かれる
+        let dt = Datetime {
+            date: Some(Date {
+                year: 2024,
+                month: 13,
+                day: 1,
+            }),
+            time: None,
+            offset: None,
+        };
+        assert!(dt.validate().is_err());
+    }
+
+    #[test]
+    fn invalid_nanosecond_field_is_rejected() {
+        // 範囲外のナノ秒は Datetime::validate でも弾かれる
+        let dt = Datetime {
+            date: None,
+            time: Some(Time {
+                hour: 1,
+                minute: 2,
+                second: 3,
+                nanosecond: 1_000_000_000,
+            }),
+            offset: None,
+        };
+        assert!(dt.validate().is_err());
+    }
+
+    #[test]
+    fn missing_date_and_time_error_message() {
+        let dt = Datetime {
+            date: None,
+            time: None,
+            offset: None,
+        };
+        let error = dt.validate().expect_err("検証は失敗するはず");
+        let message = match error {
+            shiguredo_toml::Error::Validate { message } => message,
+            other => panic!("Error::Validate になるはず, 実際は {other:?}"),
+        };
+        assert!(message.contains("date or a time"));
+    }
+
+    #[test]
+    fn offset_without_date_or_time_error_message() {
+        let dt = Datetime {
+            date: None,
+            time: None,
+            offset: Some(Offset::Z),
+        };
+        let error = dt.validate().expect_err("検証は失敗するはず");
+        let message = match error {
+            shiguredo_toml::Error::Validate { message } => message,
+            other => panic!("Error::Validate になるはず, 実際は {other:?}"),
+        };
+        assert!(message.contains("both a date and a time"));
+    }
+}
+
 mod parse_str {
     use super::*;
 
     #[test]
     fn offset_datetime() {
-        let dt: Datetime = "1979-05-27T07:32:00Z".parse().unwrap();
-        assert_eq!(dt.date.as_ref().unwrap().year, 1979);
-        assert_eq!(dt.date.as_ref().unwrap().month, 5);
-        assert_eq!(dt.date.as_ref().unwrap().day, 27);
-        assert_eq!(dt.time.as_ref().unwrap().hour, 7);
-        assert_eq!(dt.time.as_ref().unwrap().minute, 32);
-        assert_eq!(dt.time.as_ref().unwrap().second, 0);
+        let dt: Datetime = "1979-05-27T07:32:00Z"
+            .parse()
+            .expect("入力のパースに成功するはず");
+        assert_eq!(
+            dt.date.as_ref().expect("フィールドは設定されるはず").year,
+            1979
+        );
+        assert_eq!(
+            dt.date.as_ref().expect("フィールドは設定されるはず").month,
+            5
+        );
+        assert_eq!(
+            dt.date.as_ref().expect("フィールドは設定されるはず").day,
+            27
+        );
+        assert_eq!(
+            dt.time.as_ref().expect("フィールドは設定されるはず").hour,
+            7
+        );
+        assert_eq!(
+            dt.time.as_ref().expect("フィールドは設定されるはず").minute,
+            32
+        );
+        assert_eq!(
+            dt.time.as_ref().expect("フィールドは設定されるはず").second,
+            0
+        );
         assert_eq!(dt.offset, Some(Offset::Z));
     }
 
     #[test]
     fn offset_datetime_with_offset() {
-        let dt: Datetime = "1979-05-27T07:32:00+09:00".parse().unwrap();
+        let dt: Datetime = "1979-05-27T07:32:00+09:00"
+            .parse()
+            .expect("入力のパースに成功するはず");
         assert_eq!(dt.offset, Some(Offset::Custom { minutes: 540 }));
     }
 
     #[test]
     fn offset_datetime_negative_offset() {
-        let dt: Datetime = "1979-05-27T07:32:00-05:30".parse().unwrap();
+        let dt: Datetime = "1979-05-27T07:32:00-05:30"
+            .parse()
+            .expect("入力のパースに成功するはず");
         assert_eq!(dt.offset, Some(Offset::Custom { minutes: -330 }));
     }
 
     #[test]
     fn local_datetime() {
-        let dt: Datetime = "1979-05-27T07:32:00".parse().unwrap();
+        let dt: Datetime = "1979-05-27T07:32:00"
+            .parse()
+            .expect("入力のパースに成功するはず");
         assert!(dt.date.is_some());
         assert!(dt.time.is_some());
         assert!(dt.offset.is_none());
@@ -172,35 +379,51 @@ mod parse_str {
 
     #[test]
     fn local_datetime_with_space() {
-        let dt: Datetime = "1979-05-27 07:32:00".parse().unwrap();
+        let dt: Datetime = "1979-05-27 07:32:00"
+            .parse()
+            .expect("入力のパースに成功するはず");
         assert!(dt.date.is_some());
         assert!(dt.time.is_some());
     }
 
     #[test]
     fn local_date() {
-        let dt: Datetime = "1979-05-27".parse().unwrap();
+        let dt: Datetime = "1979-05-27".parse().expect("入力のパースに成功するはず");
         assert!(dt.date.is_some());
         assert!(dt.time.is_none());
     }
 
     #[test]
     fn local_time() {
-        let dt: Datetime = "07:32:00".parse().unwrap();
+        let dt: Datetime = "07:32:00".parse().expect("入力のパースに成功するはず");
         assert!(dt.date.is_none());
         assert!(dt.time.is_some());
     }
 
     #[test]
     fn fractional_seconds() {
-        let dt: Datetime = "07:32:00.123456789".parse().unwrap();
-        assert_eq!(dt.time.as_ref().unwrap().nanosecond, 123456789);
+        let dt: Datetime = "07:32:00.123456789"
+            .parse()
+            .expect("入力のパースに成功するはず");
+        assert_eq!(
+            dt.time
+                .as_ref()
+                .expect("フィールドは設定されるはず")
+                .nanosecond,
+            123456789
+        );
     }
 
     #[test]
     fn fractional_seconds_short() {
-        let dt: Datetime = "07:32:00.1".parse().unwrap();
-        assert_eq!(dt.time.as_ref().unwrap().nanosecond, 100000000);
+        let dt: Datetime = "07:32:00.1".parse().expect("入力のパースに成功するはず");
+        assert_eq!(
+            dt.time
+                .as_ref()
+                .expect("フィールドは設定されるはず")
+                .nanosecond,
+            100000000
+        );
     }
 
     #[test]

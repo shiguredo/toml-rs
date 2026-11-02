@@ -7,7 +7,7 @@ mod basic {
     fn empty_table() {
         let table = Table::new();
         let value = Value::Table(table);
-        let s = shiguredo_toml::to_string(&value).unwrap();
+        let s = shiguredo_toml::to_string(&value).expect("シリアライズに成功するはず");
         assert_eq!(s, "");
     }
 
@@ -15,7 +15,8 @@ mod basic {
     fn simple_key_value() {
         let mut table = Table::new();
         table.insert("key".into(), Value::String("value".into()));
-        let s = shiguredo_toml::to_string(&Value::Table(table)).unwrap();
+        let s =
+            shiguredo_toml::to_string(&Value::Table(table)).expect("シリアライズに成功するはず");
         assert_eq!(s, "key = \"value\"\n");
     }
 
@@ -23,7 +24,8 @@ mod basic {
     fn integer_value() {
         let mut table = Table::new();
         table.insert("a".into(), Value::Integer(42));
-        let s = shiguredo_toml::to_string(&Value::Table(table)).unwrap();
+        let s =
+            shiguredo_toml::to_string(&Value::Table(table)).expect("シリアライズに成功するはず");
         assert_eq!(s, "a = 42\n");
     }
 
@@ -31,7 +33,8 @@ mod basic {
     fn float_value() {
         let mut table = Table::new();
         table.insert("a".into(), Value::Float(2.72));
-        let s = shiguredo_toml::to_string(&Value::Table(table)).unwrap();
+        let s =
+            shiguredo_toml::to_string(&Value::Table(table)).expect("シリアライズに成功するはず");
         assert!(s.starts_with("a = 2.72"));
     }
 
@@ -39,7 +42,8 @@ mod basic {
     fn float_integer_like() {
         let mut table = Table::new();
         table.insert("a".into(), Value::Float(1.0));
-        let s = shiguredo_toml::to_string(&Value::Table(table)).unwrap();
+        let s =
+            shiguredo_toml::to_string(&Value::Table(table)).expect("シリアライズに成功するはず");
         // 整数っぽい浮動小数点数でも .0 が付く
         assert!(s.contains('.'));
     }
@@ -48,7 +52,8 @@ mod basic {
     fn float_inf() {
         let mut table = Table::new();
         table.insert("a".into(), Value::Float(f64::INFINITY));
-        let s = shiguredo_toml::to_string(&Value::Table(table)).unwrap();
+        let s =
+            shiguredo_toml::to_string(&Value::Table(table)).expect("シリアライズに成功するはず");
         assert_eq!(s, "a = inf\n");
     }
 
@@ -56,7 +61,8 @@ mod basic {
     fn float_neg_inf() {
         let mut table = Table::new();
         table.insert("a".into(), Value::Float(f64::NEG_INFINITY));
-        let s = shiguredo_toml::to_string(&Value::Table(table)).unwrap();
+        let s =
+            shiguredo_toml::to_string(&Value::Table(table)).expect("シリアライズに成功するはず");
         assert_eq!(s, "a = -inf\n");
     }
 
@@ -64,7 +70,8 @@ mod basic {
     fn float_nan() {
         let mut table = Table::new();
         table.insert("a".into(), Value::Float(f64::NAN));
-        let s = shiguredo_toml::to_string(&Value::Table(table)).unwrap();
+        let s =
+            shiguredo_toml::to_string(&Value::Table(table)).expect("シリアライズに成功するはず");
         assert_eq!(s, "a = nan\n");
     }
 
@@ -73,7 +80,8 @@ mod basic {
         let mut table = Table::new();
         table.insert("a".into(), Value::Boolean(true));
         table.insert("b".into(), Value::Boolean(false));
-        let s = shiguredo_toml::to_string(&Value::Table(table)).unwrap();
+        let s =
+            shiguredo_toml::to_string(&Value::Table(table)).expect("シリアライズに成功するはず");
         assert!(s.contains("a = true"));
         assert!(s.contains("b = false"));
     }
@@ -82,7 +90,8 @@ mod basic {
     fn string_escape() {
         let mut table = Table::new();
         table.insert("a".into(), Value::String("hello\nworld".into()));
-        let s = shiguredo_toml::to_string(&Value::Table(table)).unwrap();
+        let s =
+            shiguredo_toml::to_string(&Value::Table(table)).expect("シリアライズに成功するはず");
         assert!(s.contains("\\n"));
     }
 
@@ -90,7 +99,8 @@ mod basic {
     fn string_with_quotes() {
         let mut table = Table::new();
         table.insert("a".into(), Value::String("say \"hi\"".into()));
-        let s = shiguredo_toml::to_string(&Value::Table(table)).unwrap();
+        let s =
+            shiguredo_toml::to_string(&Value::Table(table)).expect("シリアライズに成功するはず");
         assert!(s.contains("\\\""));
     }
 
@@ -98,7 +108,8 @@ mod basic {
     fn string_with_backslash() {
         let mut table = Table::new();
         table.insert("a".into(), Value::String("C:\\path".into()));
-        let s = shiguredo_toml::to_string(&Value::Table(table)).unwrap();
+        let s =
+            shiguredo_toml::to_string(&Value::Table(table)).expect("シリアライズに成功するはず");
         assert!(s.contains("\\\\"));
     }
 }
@@ -112,7 +123,8 @@ mod structure {
         inner.insert("key".into(), Value::Integer(1));
         let mut table = Table::new();
         table.insert("section".into(), Value::Table(inner));
-        let s = shiguredo_toml::to_string(&Value::Table(table)).unwrap();
+        let s =
+            shiguredo_toml::to_string(&Value::Table(table)).expect("シリアライズに成功するはず");
         assert!(s.contains("[section]"));
         assert!(s.contains("key = 1"));
     }
@@ -128,7 +140,8 @@ mod structure {
             "items".into(),
             Value::Array(vec![Value::Table(item1), Value::Table(item2)]),
         );
-        let s = shiguredo_toml::to_string(&Value::Table(table)).unwrap();
+        let s =
+            shiguredo_toml::to_string(&Value::Table(table)).expect("シリアライズに成功するはず");
         assert!(s.contains("[[items]]"));
         assert!(s.contains("name = \"a\""));
         assert!(s.contains("name = \"b\""));
@@ -145,7 +158,8 @@ mod structure {
                 Value::Integer(3),
             ]),
         );
-        let s = shiguredo_toml::to_string(&Value::Table(table)).unwrap();
+        let s =
+            shiguredo_toml::to_string(&Value::Table(table)).expect("シリアライズに成功するはず");
         assert_eq!(s, "arr = [1, 2, 3]\n");
     }
 
@@ -153,7 +167,8 @@ mod structure {
     fn empty_array() {
         let mut table = Table::new();
         table.insert("arr".into(), Value::Array(vec![]));
-        let s = shiguredo_toml::to_string(&Value::Table(table)).unwrap();
+        let s =
+            shiguredo_toml::to_string(&Value::Table(table)).expect("シリアライズに成功するはず");
         assert_eq!(s, "arr = []\n");
     }
 
@@ -161,7 +176,8 @@ mod structure {
     fn key_quoting() {
         let mut table = Table::new();
         table.insert("hello world".into(), Value::Integer(1));
-        let s = shiguredo_toml::to_string(&Value::Table(table)).unwrap();
+        let s =
+            shiguredo_toml::to_string(&Value::Table(table)).expect("シリアライズに成功するはず");
         assert!(s.contains("\"hello world\""));
     }
 
@@ -169,7 +185,8 @@ mod structure {
     fn empty_key_quoting() {
         let mut table = Table::new();
         table.insert("".into(), Value::Integer(1));
-        let s = shiguredo_toml::to_string(&Value::Table(table)).unwrap();
+        let s =
+            shiguredo_toml::to_string(&Value::Table(table)).expect("シリアライズに成功するはず");
         assert!(s.contains("\"\""));
     }
 
@@ -192,8 +209,296 @@ mod pretty {
         let mut table = Table::new();
         table.insert("x".into(), Value::Table(inner1));
         table.insert("y".into(), Value::Table(inner2));
-        let s = shiguredo_toml::to_string_pretty(&Value::Table(table)).unwrap();
+        let s = shiguredo_toml::to_string_pretty(&Value::Table(table))
+            .expect("シリアライズに成功するはず");
         // pretty モードではテーブル間に空行
         assert!(s.contains("\n\n"));
+    }
+}
+
+mod datetime_validate {
+    use super::*;
+    use shiguredo_toml::{Date, Datetime, Offset, Time};
+
+    /// パース経路で生成される valid な 4 バリアントの入力。
+    /// シリアライズ結果の正準形の検証にも使う。
+    const VALID_INPUTS: [&str; 4] = [
+        "1979-05-27T07:32:00Z",
+        "1979-05-27T07:32:00",
+        "1979-05-27",
+        "07:32:00",
+    ];
+
+    /// valid な Date。
+    fn valid_date() -> Date {
+        Date {
+            year: 2024,
+            month: 1,
+            day: 1,
+        }
+    }
+
+    /// valid な Time。
+    fn valid_time() -> Time {
+        Time {
+            hour: 1,
+            minute: 2,
+            second: 3,
+            nanosecond: 0,
+        }
+    }
+
+    /// テーブルに包んだ無効な Datetime が to_string / to_string_pretty で
+    /// Error::Serialize になることを検証する。
+    fn assert_table_serialization_errors(dt: &Datetime) {
+        let mut table = Table::new();
+        table.insert("t".into(), Value::Datetime(dt.clone()));
+        let value = Value::Table(table);
+
+        let result = shiguredo_toml::to_string(&value);
+        assert!(
+            matches!(result, Err(shiguredo_toml::Error::Serialize { .. })),
+            "無効な Datetime で to_string は失敗するはず"
+        );
+
+        let result = shiguredo_toml::to_string_pretty(&value);
+        assert!(
+            matches!(result, Err(shiguredo_toml::Error::Serialize { .. })),
+            "無効な Datetime で to_string_pretty は失敗するはず"
+        );
+    }
+
+    /// 単体の無効な Datetime が to_inline_string で Error::Serialize になる
+    /// ことを検証する。
+    fn assert_inline_serialization_errors(dt: &Datetime) {
+        let result = shiguredo_toml::to_inline_string(&Value::Datetime(dt.clone()));
+        assert!(
+            matches!(result, Err(shiguredo_toml::Error::Serialize { .. })),
+            "無効な Datetime で to_inline_string は失敗するはず"
+        );
+    }
+
+    /// 配列やテーブルにネストした無効な Datetime も Error::Serialize になる
+    /// ことを検証する。
+    fn assert_nested_serialization_errors(dt: &Datetime) {
+        // 配列内
+        let mut table = Table::new();
+        table.insert(
+            "arr".into(),
+            Value::Array(vec![Value::Datetime(dt.clone())]),
+        );
+        let value = Value::Table(table);
+        let result = shiguredo_toml::to_string(&value);
+        assert!(
+            matches!(result, Err(shiguredo_toml::Error::Serialize { .. })),
+            "配列内の無効な Datetime で to_string は失敗するはず"
+        );
+        let result = shiguredo_toml::to_string_pretty(&value);
+        assert!(
+            matches!(result, Err(shiguredo_toml::Error::Serialize { .. })),
+            "配列内の無効な Datetime で to_string_pretty は失敗するはず"
+        );
+
+        // サブテーブル内
+        let mut table = Table::new();
+        let mut inner = Table::new();
+        inner.insert("t".into(), Value::Datetime(dt.clone()));
+        table.insert("obj".into(), Value::Table(inner));
+        let value = Value::Table(table);
+        let result = shiguredo_toml::to_string(&value);
+        assert!(
+            matches!(result, Err(shiguredo_toml::Error::Serialize { .. })),
+            "サブテーブル内の無効な Datetime で to_string は失敗するはず"
+        );
+        let result = shiguredo_toml::to_string_pretty(&value);
+        assert!(
+            matches!(result, Err(shiguredo_toml::Error::Serialize { .. })),
+            "サブテーブル内の無効な Datetime で to_string_pretty は失敗するはず"
+        );
+    }
+
+    /// 無効な Datetime（date / time 両方 None、offset なし）がエラーになる。
+    #[test]
+    fn missing_date_and_time_errors() {
+        let dt = Datetime {
+            date: None,
+            time: None,
+            offset: None,
+        };
+        assert_table_serialization_errors(&dt);
+        assert_inline_serialization_errors(&dt);
+    }
+
+    /// Error::Serialize のメッセージに検証エラーのメッセージが
+    /// 保持されることを検証する。
+    #[test]
+    fn error_message_is_preserved() {
+        let dt = Datetime {
+            date: None,
+            time: None,
+            offset: None,
+        };
+        let result = shiguredo_toml::to_inline_string(&Value::Datetime(dt));
+        let error = result.expect_err("シリアライズは失敗するはず");
+        let message = match error {
+            shiguredo_toml::Error::Serialize { message } => message,
+            other => panic!("Error::Serialize になるはず, 実際は {other:?}"),
+        };
+        assert!(
+            message.contains("date or a time"),
+            "エラーメッセージに検証メッセージが含まれるはず, 実際は: {message}"
+        );
+    }
+
+    /// 無効な Datetime（date / time 両方 None、offset あり）がエラーになる。
+    #[test]
+    fn missing_date_and_time_with_offset_errors() {
+        let dt = Datetime {
+            date: None,
+            time: None,
+            offset: Some(Offset::Z),
+        };
+        assert_table_serialization_errors(&dt);
+        assert_inline_serialization_errors(&dt);
+    }
+
+    /// 範囲外の Date（month 13）を含む Datetime がエラーになる。
+    #[test]
+    fn invalid_month_errors() {
+        let dt = Datetime {
+            date: Some(Date {
+                month: 13,
+                ..valid_date()
+            }),
+            time: Some(valid_time()),
+            offset: None,
+        };
+        assert_table_serialization_errors(&dt);
+        assert_inline_serialization_errors(&dt);
+    }
+
+    /// 範囲外の Date（day 40）を含む Datetime がエラーになる。
+    #[test]
+    fn invalid_day_errors() {
+        let dt = Datetime {
+            date: Some(Date {
+                day: 40,
+                ..valid_date()
+            }),
+            time: Some(valid_time()),
+            offset: None,
+        };
+        assert_table_serialization_errors(&dt);
+        assert_inline_serialization_errors(&dt);
+    }
+
+    /// 範囲外の Date（year 10000）を含む Datetime がエラーになる。
+    #[test]
+    fn invalid_year_errors() {
+        let dt = Datetime {
+            date: Some(Date {
+                year: 10000,
+                ..valid_date()
+            }),
+            time: Some(valid_time()),
+            offset: None,
+        };
+        assert_table_serialization_errors(&dt);
+        assert_inline_serialization_errors(&dt);
+    }
+
+    /// 範囲外の Time（hour 24）を含む Datetime がエラーになる。
+    #[test]
+    fn invalid_hour_errors() {
+        let dt = Datetime {
+            date: Some(valid_date()),
+            time: Some(Time {
+                hour: 24,
+                ..valid_time()
+            }),
+            offset: None,
+        };
+        assert_table_serialization_errors(&dt);
+        assert_inline_serialization_errors(&dt);
+    }
+
+    /// 範囲外の Offset（minutes 1440）を含む Datetime がエラーになる。
+    #[test]
+    fn invalid_offset_errors() {
+        let dt = Datetime {
+            date: Some(valid_date()),
+            time: Some(valid_time()),
+            offset: Some(Offset::Custom { minutes: 1440 }),
+        };
+        assert_table_serialization_errors(&dt);
+        assert_inline_serialization_errors(&dt);
+    }
+
+    /// date のみ + offset の組み合わせはオフセットが黙って破棄されるため
+    /// エラーになる。
+    #[test]
+    fn date_only_with_offset_errors() {
+        let dt = Datetime {
+            date: Some(valid_date()),
+            time: None,
+            offset: Some(Offset::Z),
+        };
+        assert_table_serialization_errors(&dt);
+        assert_inline_serialization_errors(&dt);
+    }
+
+    /// time のみ + offset の組み合わせはオフセットが黙って破棄されるため
+    /// エラーになる。
+    #[test]
+    fn time_only_with_offset_errors() {
+        let dt = Datetime {
+            date: None,
+            time: Some(valid_time()),
+            offset: Some(Offset::Z),
+        };
+        assert_table_serialization_errors(&dt);
+        assert_inline_serialization_errors(&dt);
+    }
+
+    /// 配列やサブテーブルにネストした無効な Datetime もエラーになる。
+    #[test]
+    fn nested_invalid_datetime_errors() {
+        let dt = Datetime {
+            date: None,
+            time: None,
+            offset: Some(Offset::Z),
+        };
+        assert_nested_serialization_errors(&dt);
+    }
+
+    /// パース経路で生成される valid な 4 バリアントのシリアライズ結果が
+    /// 入力と同一の正準形になり、再パースで値が一致することを検証する。
+    #[test]
+    fn valid_datetime_roundtrip() {
+        for input in VALID_INPUTS {
+            let parsed = shiguredo_toml::from_str(&format!("t = {input}"))
+                .expect("TOML のパースに成功するはず");
+            let serialized = shiguredo_toml::to_string(&Value::Table(parsed.clone()))
+                .expect("シリアライズに成功するはず");
+            // シリアライズ結果は入力の正準形と同一である
+            assert_eq!(serialized, format!("t = {input}\n"));
+            let reparsed =
+                shiguredo_toml::from_str(&serialized).expect("TOML の再パースに成功するはず");
+            assert_eq!(parsed, reparsed);
+        }
+    }
+
+    /// valid な 4 バリアントの単体 Datetime が to_inline_string で
+    /// 入力と同じ表現で出力されることを検証する。
+    #[test]
+    fn valid_datetime_inline_ok() {
+        for input in VALID_INPUTS {
+            let parsed = shiguredo_toml::from_str(&format!("t = {input}"))
+                .expect("TOML のパースに成功するはず");
+            let dt = parsed["t"].as_datetime().expect("値は日時になるはず");
+            let result = shiguredo_toml::to_inline_string(&Value::Datetime(dt.clone()))
+                .expect("インラインシリアライズに成功するはず");
+            assert_eq!(result, input);
+        }
     }
 }

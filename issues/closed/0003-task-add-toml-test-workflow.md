@@ -25,4 +25,3 @@
 - `make clippy`: 成功
 - `make check`: 成功
 - `make test`: 成功
-

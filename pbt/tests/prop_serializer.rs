@@ -1,66 +1,124 @@
-use pbt::{bare_key_strategy, safe_string_strategy};
-use proptest::prelude::*;
+use std::cell::Cell;
 
-proptest! {
-    /// 文字列値のラウンドトリップ。
-    #[test]
-    fn string_roundtrip(
-        key in bare_key_strategy(),
-        value in safe_string_strategy(),
-    ) {
-        let table = shiguredo_toml::from_str(&format!("{key} = \"\"")).unwrap();
-        // まず空文字列をパースして構造確認
-        prop_assert!(table.get(&key).unwrap().is_str());
+use pbt::{sample_bare_key, sample_datetime, sample_safe_string};
 
-        // 実際の値を含むテーブルをプログラムで構築して直列化
+/// 文字列値のラウンドトリップ。
+///
+/// エスケープが必要な文字（バックスラッシュとダブルクォート）を含む文字列が
+/// 一度は検証されたことを coverage gate で確認する。エスケープの往復は
+/// シリアライザとパーサの整合が崩れやすい箇所であり、空振りさせない。
+#[test]
+fn string_roundtrip() -> noprop::TestResult {
+    let seed = noprop::seed_from_env_or_time("NOPROP_SEED")?;
+    // coverage gate: エスケープが必要な文字を含む文字列が一度は検証されたか
+    let escaped_strings = Cell::new(0usize);
+    let mut runner = noprop::Runner::new(seed);
+    runner.run(256, |ctx| {
+        let key = sample_bare_key(ctx);
+        let value = sample_safe_string(ctx);
+        // エスケープが必要な文字（バックスラッシュとダブルクォート）を含むか
+        let contains_escape = value.contains('\\') || value.contains('"');
+
         let mut table = shiguredo_toml::Table::new();
         table.insert(key.clone(), shiguredo_toml::Value::String(value.clone()));
-        let serialized = shiguredo_toml::to_string(&shiguredo_toml::Value::Table(table)).unwrap();
-        let parsed = shiguredo_toml::from_str(&serialized).unwrap();
-        prop_assert_eq!(parsed.get(&key).unwrap().as_str().unwrap(), &value);
-    }
+        let serialized = shiguredo_toml::to_string(&shiguredo_toml::Value::Table(table))
+            .expect("シリアライズに成功するはず");
+        let parsed = shiguredo_toml::from_str(&serialized).expect("TOML のパースに成功するはず");
+        assert_eq!(
+            parsed
+                .get(&key)
+                .expect("キーは存在するはず")
+                .as_str()
+                .expect("値は文字列になるはず"),
+            &value,
+            "文字列値が一致しない: {value:?} -> {serialized:?}"
+        );
+        // 検証を通過した後に、エスケープ文字を含むケースをカウントする
+        if contains_escape {
+            escaped_strings.set(escaped_strings.get() + 1);
+        }
+        Ok(())
+    })?;
+    assert!(
+        escaped_strings.get() > 0,
+        "エスケープが必要な文字を含む文字列が一度も検証されていない\n{runner}"
+    );
+    Ok(())
+}
 
-    /// 浮動小数点数のラウンドトリップ（有限値のみ）。
-    #[test]
-    fn float_roundtrip(
-        key in bare_key_strategy(),
-        f in (-1e100f64..1e100),
-    ) {
+/// 浮動小数点数のラウンドトリップ（有限値のみ）。
+#[test]
+fn float_roundtrip() -> noprop::TestResult {
+    let seed = noprop::seed_from_env_or_time("NOPROP_SEED")?;
+    let mut runner = noprop::Runner::new(seed);
+    runner.run(256, |ctx| {
+        let key = sample_bare_key(ctx);
+        let f = pbt::sample_f64_boundaries(ctx);
         let mut table = shiguredo_toml::Table::new();
         table.insert(key.clone(), shiguredo_toml::Value::Float(f));
-        let serialized = shiguredo_toml::to_string(&shiguredo_toml::Value::Table(table)).unwrap();
-        let parsed = shiguredo_toml::from_str(&serialized).unwrap();
-        let parsed_f = parsed.get(&key).unwrap().as_float().unwrap();
-        prop_assert!((parsed_f - f).abs() < 1e-10 || parsed_f == f,
-            "Float mismatch: {f} -> {parsed_f}");
-    }
+        let serialized = shiguredo_toml::to_string(&shiguredo_toml::Value::Table(table))
+            .expect("シリアライズに成功するはず");
+        let parsed = shiguredo_toml::from_str(&serialized).expect("TOML のパースに成功するはず");
+        let parsed_f = parsed
+            .get(&key)
+            .expect("キーは存在するはず")
+            .as_float()
+            .expect("値は浮動小数点数になるはず");
+        assert!(
+            (parsed_f - f).abs() < 1e-10 || parsed_f == f,
+            "浮動小数点数の不一致: {f} -> {serialized:?} -> {parsed_f}"
+        );
+        Ok(())
+    })?;
+    Ok(())
+}
 
-    /// Datetime のラウンドトリップ。
-    #[test]
-    fn datetime_roundtrip(
-        key in bare_key_strategy(),
-        dt in pbt::datetime_strategy(),
-    ) {
-        let dt_str = dt.to_string();
-        if dt_str.is_empty() {
-            return Ok(());
-        }
+/// Datetime のラウンドトリップ。
+#[test]
+fn datetime_roundtrip() -> noprop::TestResult {
+    let seed = noprop::seed_from_env_or_time("NOPROP_SEED")?;
+    let mut runner = noprop::Runner::new(seed);
+    runner.run(256, |ctx| {
+        let key = sample_bare_key(ctx);
+        let dt = sample_datetime(ctx);
         let mut table = shiguredo_toml::Table::new();
         table.insert(key.clone(), shiguredo_toml::Value::Datetime(dt.clone()));
-        let serialized = shiguredo_toml::to_string(&shiguredo_toml::Value::Table(table)).unwrap();
-        let parsed = shiguredo_toml::from_str(&serialized).unwrap();
-        let parsed_dt = parsed.get(&key).unwrap().as_datetime().unwrap();
-        prop_assert_eq!(&parsed_dt.date, &dt.date);
+        let serialized = shiguredo_toml::to_string(&shiguredo_toml::Value::Table(table))
+            .expect("シリアライズに成功するはず");
+        let parsed = shiguredo_toml::from_str(&serialized).expect("TOML のパースに成功するはず");
+        let parsed_dt = parsed
+            .get(&key)
+            .expect("キーは存在するはず")
+            .as_datetime()
+            .expect("値は日時になるはず");
+        assert_eq!(
+            &parsed_dt.date, &dt.date,
+            "日付が一致しない: {dt:?} -> {serialized:?} -> {parsed:?}"
+        );
         match (&dt.time, &parsed_dt.time) {
             (Some(t1), Some(t2)) => {
-                prop_assert_eq!(t1.hour, t2.hour);
-                prop_assert_eq!(t1.minute, t2.minute);
-                prop_assert_eq!(t1.second, t2.second);
-                prop_assert_eq!(t1.nanosecond, t2.nanosecond);
+                assert_eq!(t1.hour, t2.hour, "時が一致しない: {dt:?} -> {serialized:?}");
+                assert_eq!(
+                    t1.minute, t2.minute,
+                    "分が一致しない: {dt:?} -> {serialized:?}"
+                );
+                assert_eq!(
+                    t1.second, t2.second,
+                    "秒が一致しない: {dt:?} -> {serialized:?}"
+                );
+                assert_eq!(
+                    t1.nanosecond, t2.nanosecond,
+                    "ナノ秒が一致しない: {dt:?} -> {serialized:?}"
+                );
             }
             (None, None) => {}
-            _ => prop_assert!(false, "Time presence mismatch"),
+            _ => panic!("時刻の有無が一致しない: {dt:?} -> {serialized:?} -> {parsed:?}"),
         }
-        prop_assert_eq!(&parsed_dt.offset, &dt.offset);
-    }
+        assert_eq!(
+            &parsed_dt.offset, &dt.offset,
+            "オフセットが一致しない: {dt:?} -> {serialized:?}"
+        );
+        Ok(())
+    })?;
+    Ok(())
 }

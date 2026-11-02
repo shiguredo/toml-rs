@@ -8,16 +8,18 @@ on:
 jobs:
   github-release:
     name: "Create GitHub Release"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
+    permissions:
+      contents: write
     outputs:
       version: ${{ steps.get_version.outputs.VERSION }}
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Get the version
         id: get_version
-        run: echo "VERSION=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
+        run: echo "VERSION=${GITHUB_REF/refs\/tags\//}" >> "$GITHUB_OUTPUT"
 
       - name: Create Release
         env:
@@ -41,8 +43,10 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - uses: actions/checkout@v6
-      - uses: rust-lang/crates-io-auth-action@v1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # rust-toolchain.toml に固定した MSRV のツールチェーンを導入する
+      - run: rustup show
+      - uses: rust-lang/crates-io-auth-action@3268eb413133e2960fa4ae0e963ca76380c54cd9 # v1.0.6
         id: auth
       - run: cargo publish
         env:
