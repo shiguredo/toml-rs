@@ -10,7 +10,7 @@ checksum = "1d7473c448719d0214889f9ff75d4cdb6cf96582e4a9058e6eb2a52dc8d342ae"
 
 [[package]]
 name = "shiguredo_toml"
-version = "2026.3.0-canary.1"
+version = "2026.3.0"
 
 [[package]]
 name = "toml_test_adapter"
