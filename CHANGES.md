@@ -11,6 +11,10 @@
 
 ## develop
 
+## 2026.3.0
+
+**リリース日**: 2026-11-02
+
 - [CHANGE] 最小対応 Rust バージョン (MSRV) を 1.88 から 1.95 に引き上げる
   - @voluntas
 - [CHANGE] PBT の依存を proptest から noprop に切り替える
